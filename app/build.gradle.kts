@@ -1,8 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    // alias(libs.plugins.hilt.android) // Удаляем Hilt
-    // id("org.jetbrains.kotlin.kapt") // Удаляем kapt
+    // alias(libs.plugins.hilt.android) // Hilt не нужен
+    id("org.jetbrains.kotlin.kapt") // Включаем kapt для Room
 }
 
 android {
@@ -68,8 +68,8 @@ dependencies {
     // Room
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
-    // kapt(libs.room.compiler) // Удаляем kapt
-    annotationProcessor(libs.room.compiler)
+    kapt(libs.room.compiler) // Включаем kapt для Room
+    // annotationProcessor(libs.room.compiler) // Удаляем annotationProcessor
 
     // Retrofit/OkHttp
     implementation(libs.retrofit)
