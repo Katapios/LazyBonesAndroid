@@ -48,4 +48,20 @@ class PlanViewModel(
     fun deleteTag(tag: Tag) = viewModelScope.launch {
         tagRepository.delete(tag)
     }
+
+    fun saveAsReport(postRepository: PostRepository) = viewModelScope.launch {
+        val checklist = planItems.value.map { it.text }
+        val goodCount = goodTags.value.size
+        val badCount = badTags.value.size
+        val post = Post(
+            date = java.util.Date(),
+            content = "", // можно добавить сводку
+            checklist = checklist,
+            voiceNotes = listOf(),
+            published = false,
+            goodCount = goodCount,
+            badCount = badCount
+        )
+        postRepository.insert(post)
+    }
 } 

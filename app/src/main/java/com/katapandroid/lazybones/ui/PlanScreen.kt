@@ -23,12 +23,19 @@ import org.koin.androidx.compose.getViewModel
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import kotlinx.coroutines.launch
+import com.katapandroid.lazybones.data.PostRepository
+import org.koin.androidx.compose.get
 
 @Composable
 fun PlanScreen(
-    viewModel: PlanViewModel = getViewModel(),
-    onSaveReport: () -> Unit = {}
+    viewModel: PlanViewModel = getViewModel()
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    val postRepository = get<PostRepository>()
     var selectedTab by remember { mutableStateOf(0) } // 0 = План, 1 = Теги
     val tabTitles = listOf("План", "Теги")
 
@@ -50,7 +57,12 @@ fun PlanScreen(
         }
         Spacer(Modifier.weight(1f))
         Button(
-            onClick = onSaveReport,
+            onClick = {
+                coroutineScope.launch {
+                    viewModel.saveAsReport(postRepository)
+                    snackbarHostState.showSnackbar("Отчет сохранен")
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
@@ -59,6 +71,7 @@ fun PlanScreen(
         ) {
             Text("Сохранить как отчет", style = MaterialTheme.typography.titleMedium)
         }
+        SnackbarHost(hostState = snackbarHostState)
     }
 }
 
@@ -78,8 +91,9 @@ private fun PlanTab(viewModel: PlanViewModel) {
                 placeholder = { Text("Добавить пункт плана") },
                 modifier = Modifier.weight(1f),
                 shape = MaterialTheme.shapes.medium,
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline
                 )
@@ -194,8 +208,9 @@ private fun TagsTab(viewModel: PlanViewModel) {
                 placeholder = { Text("Добавить тег") },
                 modifier = Modifier.weight(1f),
                 shape = MaterialTheme.shapes.medium,
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline
                 )
