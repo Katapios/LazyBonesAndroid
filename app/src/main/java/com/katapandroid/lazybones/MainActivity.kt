@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.getValue
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.katapandroid.lazybones.ui.PlanScreen
+import com.katapandroid.lazybones.ui.ReportFormScreen
 
 sealed class BottomNavItem(val route: String, val label: String, val icon: ImageVector) {
     object Main : BottomNavItem("main", "Главная", Icons.Default.Home)
@@ -78,10 +79,18 @@ fun AppNavHost(navController: NavHostController, mainViewModel: MainViewModel) {
             startDestination = BottomNavItem.Main.route,
             modifier = Modifier.padding(padding)
         ) {
-            composable(BottomNavItem.Main.route) { MainScreen(mainViewModel) }
+            composable(BottomNavItem.Main.route) {
+                MainScreen(
+                    mainViewModel,
+                    onOpenReportForm = { navController.navigate("reportForm") }
+                )
+            }
             composable(BottomNavItem.Plan.route) { PlanScreen() }
             composable(BottomNavItem.Reports.route) { ReportsScreen() }
             composable(BottomNavItem.Settings.route) { SettingsScreen() }
+            composable("reportForm") {
+                ReportFormScreen(onBack = { navController.popBackStack() })
+            }
         }
     }
 }

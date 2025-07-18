@@ -40,7 +40,7 @@ fun PlanScreen(
     val tabTitles = listOf("План", "Теги")
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        TabRow(selectedTabIndex = selectedTab, containerColor = MaterialTheme.colorScheme.surfaceContainer) {
+        TabRow(selectedTabIndex = selectedTab, containerColor = MaterialTheme.colorScheme.surface) {
             tabTitles.forEachIndexed { idx, title ->
                 Tab(
                     selected = selectedTab == idx,
@@ -197,7 +197,7 @@ private fun TagsTab(viewModel: PlanViewModel) {
     var showDeleteDialog by remember { mutableStateOf<Pair<Boolean, Tag?>>(false to null) }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
-        TabRow(selectedTabIndex = if (selectedTagTab == TagType.GOOD) 0 else 1, containerColor = MaterialTheme.colorScheme.surfaceContainer) {
+        TabRow(selectedTabIndex = if (selectedTagTab == TagType.GOOD) 0 else 1, containerColor = MaterialTheme.colorScheme.surface) {
             Tab(selected = selectedTagTab == TagType.GOOD, onClick = { selectedTagTab = TagType.GOOD }, text = { Text("Хорошие", style = MaterialTheme.typography.titleMedium) })
             Tab(selected = selectedTagTab == TagType.BAD, onClick = { selectedTagTab = TagType.BAD }, text = { Text("Плохие", style = MaterialTheme.typography.titleMedium) })
         }

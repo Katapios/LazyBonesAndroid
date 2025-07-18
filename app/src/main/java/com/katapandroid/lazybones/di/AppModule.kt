@@ -30,7 +30,7 @@ val appModule = module {
     single { TagRepository(get()) }
     viewModel { MainViewModel(get()) }
     viewModel { ReportsViewModel(get()) }
-    viewModel { ReportFormViewModel(get()) }
+    viewModel { ReportFormViewModel(get(), get()) }
     viewModel { VoiceNotesViewModel(get()) }
     viewModel { PlanViewModel(get(), get()) }
 } 
