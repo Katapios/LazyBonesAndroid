@@ -1,3 +1,4 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
 package com.katapandroid.lazybones.ui
 
 import androidx.compose.foundation.background
@@ -19,8 +20,10 @@ import com.katapandroid.lazybones.data.PlanItem
 import com.katapandroid.lazybones.data.Tag
 import com.katapandroid.lazybones.data.TagType
 import org.koin.androidx.compose.getViewModel
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlanScreen(
     viewModel: PlanViewModel = getViewModel(),
@@ -30,27 +33,31 @@ fun PlanScreen(
     val tabTitles = listOf("План", "Теги")
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        TabRow(selectedTabIndex = selectedTab) {
+        TabRow(selectedTabIndex = selectedTab, containerColor = MaterialTheme.colorScheme.surfaceContainer) {
             tabTitles.forEachIndexed { idx, title ->
                 Tab(
                     selected = selectedTab == idx,
                     onClick = { selectedTab = idx },
-                    text = { Text(title) }
+                    text = { Text(title, style = MaterialTheme.typography.titleMedium) }
                 )
             }
         }
-        when (selectedTab) {
-            0 -> PlanTab(viewModel)
-            1 -> TagsTab(viewModel)
+        AnimatedVisibility(visible = selectedTab == 0, enter = fadeIn(), exit = fadeOut()) {
+            PlanTab(viewModel)
+        }
+        AnimatedVisibility(visible = selectedTab == 1, enter = fadeIn(), exit = fadeOut()) {
+            TagsTab(viewModel)
         }
         Spacer(Modifier.weight(1f))
         Button(
             onClick = onSaveReport,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(16.dp),
+            shape = MaterialTheme.shapes.large,
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
         ) {
-            Text("Сохранить как отчет")
+            Text("Сохранить как отчет", style = MaterialTheme.typography.titleMedium)
         }
     }
 }
@@ -69,52 +76,79 @@ private fun PlanTab(viewModel: PlanViewModel) {
                 value = input,
                 onValueChange = { input = it },
                 placeholder = { Text("Добавить пункт плана") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                shape = MaterialTheme.shapes.medium,
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                )
             )
+            Spacer(Modifier.width(8.dp))
             IconButton(
                 onClick = {
                     if (input.text.isNotBlank()) {
                         viewModel.addPlanItem(input.text)
                         input = TextFieldValue()
                     }
-                }
+                },
+                modifier = Modifier.size(48.dp),
+                colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Добавить")
+                Icon(Icons.Default.Add, contentDescription = "Добавить", tint = MaterialTheme.colorScheme.primary)
             }
         }
-        Spacer(Modifier.height(8.dp))
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Spacer(Modifier.height(16.dp))
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(planItems, key = { it.id }) { item ->
-                if (editingId == item.id) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(
-                            value = editingText,
-                            onValueChange = { editingText = it },
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(onClick = {
-                            if (editingText.text.isNotBlank()) {
-                                viewModel.updatePlanItem(item.copy(text = editingText.text))
-                                editingId = null
+                AnimatedVisibility(visible = true, enter = fadeIn(), exit = fadeOut()) {
+                    if (editingId == item.id) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium,
+                            elevation = CardDefaults.cardElevation(6.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
+                                OutlinedTextField(
+                                    value = editingText,
+                                    onValueChange = { editingText = it },
+                                    modifier = Modifier.weight(1f),
+                                    shape = MaterialTheme.shapes.small
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                IconButton(onClick = {
+                                    if (editingText.text.isNotBlank()) {
+                                        viewModel.updatePlanItem(item.copy(text = editingText.text))
+                                        editingId = null
+                                    }
+                                }, colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                                    Text("OK", color = MaterialTheme.colorScheme.primary)
+                                }
+                                IconButton(onClick = { editingId = null }) {
+                                    Text("X", color = MaterialTheme.colorScheme.error)
+                                }
                             }
-                        }) {
-                            Text("OK")
                         }
-                        IconButton(onClick = { editingId = null }) {
-                            Text("X")
-                        }
-                    }
-                } else {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(item.text, modifier = Modifier.weight(1f))
-                        IconButton(onClick = {
-                            editingId = item.id
-                            editingText = TextFieldValue(item.text)
-                        }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Редактировать")
-                        }
-                        IconButton(onClick = { showDeleteDialog = true to item }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Удалить")
+                    } else {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium,
+                            elevation = CardDefaults.cardElevation(4.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(12.dp)) {
+                                Text(item.text, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                                IconButton(onClick = {
+                                    editingId = item.id
+                                    editingText = TextFieldValue(item.text)
+                                }, colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                                    Icon(Icons.Default.Edit, contentDescription = "Редактировать", tint = MaterialTheme.colorScheme.primary)
+                                }
+                                IconButton(onClick = { showDeleteDialog = true to item }, colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Удалить", tint = MaterialTheme.colorScheme.error)
+                                }
+                            }
                         }
                     }
                 }
@@ -124,12 +158,12 @@ private fun PlanTab(viewModel: PlanViewModel) {
     if (showDeleteDialog.first) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false to null },
-            title = { Text("Удалить пункт?") },
+            title = { Text("Удалить пункт?", style = MaterialTheme.typography.titleMedium) },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteDialog.second?.let { viewModel.deletePlanItem(it) }
                     showDeleteDialog = false to null
-                }) { Text("Удалить") }
+                }) { Text("Удалить", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false to null }) { Text("Отмена") }
@@ -149,62 +183,89 @@ private fun TagsTab(viewModel: PlanViewModel) {
     var showDeleteDialog by remember { mutableStateOf<Pair<Boolean, Tag?>>(false to null) }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
-        TabRow(selectedTabIndex = if (selectedTagTab == TagType.GOOD) 0 else 1) {
-            Tab(selected = selectedTagTab == TagType.GOOD, onClick = { selectedTagTab = TagType.GOOD }, text = { Text("Хорошие") })
-            Tab(selected = selectedTagTab == TagType.BAD, onClick = { selectedTagTab = TagType.BAD }, text = { Text("Плохие") })
+        TabRow(selectedTabIndex = if (selectedTagTab == TagType.GOOD) 0 else 1, containerColor = MaterialTheme.colorScheme.surfaceContainer) {
+            Tab(selected = selectedTagTab == TagType.GOOD, onClick = { selectedTagTab = TagType.GOOD }, text = { Text("Хорошие", style = MaterialTheme.typography.titleMedium) })
+            Tab(selected = selectedTagTab == TagType.BAD, onClick = { selectedTagTab = TagType.BAD }, text = { Text("Плохие", style = MaterialTheme.typography.titleMedium) })
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
                 value = input,
                 onValueChange = { input = it },
                 placeholder = { Text("Добавить тег") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                shape = MaterialTheme.shapes.medium,
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                )
             )
+            Spacer(Modifier.width(8.dp))
             IconButton(
                 onClick = {
                     if (input.text.isNotBlank()) {
                         viewModel.addTag(input.text, selectedTagTab)
                         input = TextFieldValue()
                     }
-                }
+                },
+                modifier = Modifier.size(48.dp),
+                colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Добавить тег")
+                Icon(Icons.Default.Add, contentDescription = "Добавить тег", tint = MaterialTheme.colorScheme.primary)
             }
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(16.dp))
         val tags = if (selectedTagTab == TagType.GOOD) goodTags else badTags
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(tags, key = { it.id }) { tag ->
-                if (editingId == tag.id) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(
-                            value = editingText,
-                            onValueChange = { editingText = it },
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(onClick = {
-                            if (editingText.text.isNotBlank()) {
-                                viewModel.updateTag(tag.copy(text = editingText.text))
-                                editingId = null
+                AnimatedVisibility(visible = true, enter = fadeIn(), exit = fadeOut()) {
+                    if (editingId == tag.id) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium,
+                            elevation = CardDefaults.cardElevation(6.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
+                                OutlinedTextField(
+                                    value = editingText,
+                                    onValueChange = { editingText = it },
+                                    modifier = Modifier.weight(1f),
+                                    shape = MaterialTheme.shapes.small
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                IconButton(onClick = {
+                                    if (editingText.text.isNotBlank()) {
+                                        viewModel.updateTag(tag.copy(text = editingText.text))
+                                        editingId = null
+                                    }
+                                }, colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                                    Text("OK", color = MaterialTheme.colorScheme.primary)
+                                }
+                                IconButton(onClick = { editingId = null }) {
+                                    Text("X", color = MaterialTheme.colorScheme.error)
+                                }
                             }
-                        }) {
-                            Text("OK")
                         }
-                        IconButton(onClick = { editingId = null }) {
-                            Text("X")
-                        }
-                    }
-                } else {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(tag.text, modifier = Modifier.weight(1f))
-                        IconButton(onClick = {
-                            editingId = tag.id
-                            editingText = TextFieldValue(tag.text)
-                        }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Редактировать тег")
-                        }
-                        IconButton(onClick = { showDeleteDialog = true to tag }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Удалить тег")
+                    } else {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium,
+                            elevation = CardDefaults.cardElevation(4.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(12.dp)) {
+                                Text(tag.text, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                                IconButton(onClick = {
+                                    editingId = tag.id
+                                    editingText = TextFieldValue(tag.text)
+                                }, colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                                    Icon(Icons.Default.Edit, contentDescription = "Редактировать тег", tint = MaterialTheme.colorScheme.primary)
+                                }
+                                IconButton(onClick = { showDeleteDialog = true to tag }, colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Удалить тег", tint = MaterialTheme.colorScheme.error)
+                                }
+                            }
                         }
                     }
                 }
@@ -214,12 +275,12 @@ private fun TagsTab(viewModel: PlanViewModel) {
     if (showDeleteDialog.first) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false to null },
-            title = { Text("Удалить тег?") },
+            title = { Text("Удалить тег?", style = MaterialTheme.typography.titleMedium) },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteDialog.second?.let { viewModel.deleteTag(it) }
                     showDeleteDialog = false to null
-                }) { Text("Удалить") }
+                }) { Text("Удалить", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false to null }) { Text("Отмена") }
