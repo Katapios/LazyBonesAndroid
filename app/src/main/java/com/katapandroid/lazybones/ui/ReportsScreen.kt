@@ -16,6 +16,11 @@ import java.util.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,6 +30,7 @@ fun ReportsScreen(
     onCreateReport: () -> Unit = {}
 ) {
     val posts = viewModel.posts.collectAsState().value
+    val coroutineScope = rememberCoroutineScope()
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp)
     ) {
@@ -41,7 +47,15 @@ fun ReportsScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(posts) { post ->
-                    ReportCard(post, onClick = { onReportClick(post) })
+                    ReportCard(
+                        post,
+                        onClick = { onReportClick(post) },
+                        onDelete = {
+                            coroutineScope.launch {
+                                viewModel.deletePost(post)
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -54,12 +68,20 @@ fun ReportsScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReportCard(post: Post, onClick: () -> Unit = {}) {
+fun ReportCard(post: Post, onClick: () -> Unit = {}, onDelete: () -> Unit = {}) {
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Дата: ${post.date}", style = MaterialTheme.typography.titleMedium)
-            Text("Good: ${post.goodCount}  Bad: ${post.badCount}", style = MaterialTheme.typography.bodyMedium)
-            Text("Статус: ${if (post.published) "Опубликован" else "Черновик"}", style = MaterialTheme.typography.bodySmall)
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Дата: ${post.date}", style = MaterialTheme.typography.titleMedium)
+                Text("Good: ${post.goodCount}  Bad: ${post.badCount}", style = MaterialTheme.typography.bodyMedium)
+                Text("Статус: ${if (post.published) "Опубликован" else "Черновик"}", style = MaterialTheme.typography.bodySmall)
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, contentDescription = "Удалить отчёт")
+            }
         }
     }
 }

@@ -5,12 +5,14 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
 @Database(
-    entities = [Post::class, VoiceNote::class],
-    version = 1,
+    entities = [Post::class, VoiceNote::class, PlanItem::class, Tag::class],
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class LazyBonesDatabase : RoomDatabase() {
     abstract fun postDao(): PostDao
     abstract fun voiceNoteDao(): VoiceNoteDao
+    abstract fun planItemDao(): PlanItemDao
+    abstract fun tagDao(): TagDao
 } 

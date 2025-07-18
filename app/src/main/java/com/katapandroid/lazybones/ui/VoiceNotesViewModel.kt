@@ -21,4 +21,7 @@ class VoiceNotesViewModel(
             _voiceNotes.value = notes
         }.launchIn(viewModelScope)
     }
+
+    suspend fun addVoiceNote(note: VoiceNote) = voiceNoteRepository.insert(note)
+    suspend fun deleteVoiceNote(note: VoiceNote) = voiceNoteRepository.delete(note)
 } 

@@ -37,6 +37,7 @@ import com.katapandroid.lazybones.ui.SettingsScreen
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.getValue
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.katapandroid.lazybones.ui.PlanScreen
 
 sealed class BottomNavItem(val route: String, val label: String, val icon: ImageVector) {
     object Main : BottomNavItem("main", "Главная", Icons.Default.Home)
@@ -78,7 +79,7 @@ fun AppNavHost(navController: NavHostController, mainViewModel: MainViewModel) {
             modifier = Modifier.padding(padding)
         ) {
             composable(BottomNavItem.Main.route) { MainScreen(mainViewModel) }
-            composable(BottomNavItem.Plan.route) { ReportFormScreen() }
+            composable(BottomNavItem.Plan.route) { PlanScreen() }
             composable(BottomNavItem.Reports.route) { ReportsScreen() }
             composable(BottomNavItem.Settings.route) { SettingsScreen() }
         }

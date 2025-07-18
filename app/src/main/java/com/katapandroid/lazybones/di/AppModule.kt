@@ -7,6 +7,7 @@ import com.katapandroid.lazybones.ui.MainViewModel
 import com.katapandroid.lazybones.ui.ReportsViewModel
 import com.katapandroid.lazybones.ui.ReportFormViewModel
 import com.katapandroid.lazybones.ui.VoiceNotesViewModel
+import com.katapandroid.lazybones.ui.PlanViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
@@ -16,14 +17,20 @@ val appModule = module {
             get<Application>(), // Исправлено: используем Application
             LazyBonesDatabase::class.java,
             "lazybones_db"
-        ).build()
+        ).fallbackToDestructiveMigration()
+         .build()
     }
     single { get<LazyBonesDatabase>().postDao() }
     single { get<LazyBonesDatabase>().voiceNoteDao() }
+    single { get<LazyBonesDatabase>().planItemDao() }
+    single { get<LazyBonesDatabase>().tagDao() }
     single { PostRepository(get()) }
     single { VoiceNoteRepository(get()) }
+    single { PlanItemRepository(get()) }
+    single { TagRepository(get()) }
     viewModel { MainViewModel(get()) }
     viewModel { ReportsViewModel(get()) }
     viewModel { ReportFormViewModel(get()) }
     viewModel { VoiceNotesViewModel(get()) }
+    viewModel { PlanViewModel(get(), get()) }
 } 

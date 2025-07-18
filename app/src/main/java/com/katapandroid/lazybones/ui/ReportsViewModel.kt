@@ -21,4 +21,7 @@ class ReportsViewModel(
             _posts.value = posts
         }.launchIn(viewModelScope)
     }
+
+    suspend fun addPost(post: Post) = postRepository.insert(post)
+    suspend fun deletePost(post: Post) = postRepository.delete(post)
 } 

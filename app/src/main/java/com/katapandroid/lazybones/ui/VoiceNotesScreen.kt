@@ -16,6 +16,11 @@ import java.util.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,6 +31,7 @@ fun VoiceNotesScreen(
     onDelete: (VoiceNote) -> Unit = {}
 ) {
     val notes = viewModel.voiceNotes.collectAsState().value
+    val coroutineScope = rememberCoroutineScope()
     Scaffold(
         topBar = { TopAppBar(title = { Text("Голосовые заметки") }) },
         floatingActionButton = {
@@ -45,7 +51,15 @@ fun VoiceNotesScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(notes) { note ->
-                    VoiceNoteCard(note, onPlay = { onPlay(note) }, onDelete = { onDelete(note) })
+                    VoiceNoteCard(
+                        note,
+                        onPlay = { onPlay(note) },
+                        onDelete = {
+                            coroutineScope.launch {
+                                viewModel.deleteVoiceNote(note)
+                            }
+                        }
+                    )
                 }
             }
         }
