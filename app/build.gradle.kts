@@ -1,8 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    // alias(libs.plugins.hilt.android) // Hilt не нужен
-    id("org.jetbrains.kotlin.kapt") // Включаем kapt для Room
+    id("org.jetbrains.kotlin.kapt")
 }
 
 android {
@@ -68,8 +67,7 @@ dependencies {
     // Room
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
-    kapt(libs.room.compiler) // Включаем kapt для Room
-    // annotationProcessor(libs.room.compiler) // Удаляем annotationProcessor
+    kapt(libs.room.compiler)
 
     // Retrofit/OkHttp
     implementation(libs.retrofit)
@@ -97,10 +95,15 @@ dependencies {
     // Koin
     implementation("io.insert-koin:koin-android:3.5.3")
     implementation("io.insert-koin:koin-androidx-compose:3.5.3")
+    implementation("androidx.navigation:navigation-compose:2.7.7")
 }
 
 configurations.all {
     resolutionStrategy {
         force("com.squareup:javapoet:1.13.0")
     }
+}
+
+kapt {
+    correctErrorTypes = true
 }
