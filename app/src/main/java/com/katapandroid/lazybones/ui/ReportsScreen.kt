@@ -137,7 +137,7 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                                 }
                             }
                         },
-                        onSend = {},
+                        onSend = { showTelegramSettingsDialog = post }, // <--- теперь для локальных
                         onDelete = {},
                         onSave = {}
                     )
@@ -413,10 +413,10 @@ private fun ReportCard(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f)
                 )
+                IconButton(onClick = onSend) {
+                    Icon(Icons.Default.Send, contentDescription = "Отправить в Telegram", tint = MaterialTheme.colorScheme.primary)
+                }
                 if (report.isCustom) {
-                    IconButton(onClick = onSend) {
-                        Icon(Icons.Default.Send, contentDescription = "Отправить", tint = MaterialTheme.colorScheme.primary)
-                    }
                     Spacer(Modifier.width(8.dp))
                     OutlinedButton(
                         onClick = onDelete,

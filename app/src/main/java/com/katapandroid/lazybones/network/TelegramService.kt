@@ -64,24 +64,24 @@ class TelegramService {
                         appendLine("${idx + 1}. $icon $item")
                     }
                     appendLine()
-                }
-                
-                if (goodItems.isNotEmpty()) {
-                    appendLine("✅ Я молодец:")
-                    goodItems.forEachIndexed { idx, item ->
-                        appendLine("${idx + 1}. ✅ $item")
+                } 
+                // Если checklist пустой — выводим good/bad секции
+                if (checklist.isEmpty()) {
+                    if (goodItems.isNotEmpty()) {
+                        appendLine("✅ Я молодец:")
+                        goodItems.forEachIndexed { idx, item ->
+                            appendLine("${idx + 1}. ✅ $item")
+                        }
+                        appendLine()
                     }
-                    appendLine()
-                }
-                
-                if (badItems.isNotEmpty()) {
-                    appendLine("❌ Я не молодец:")
-                    badItems.forEachIndexed { idx, item ->
-                        appendLine("${idx + 1}. ❌ $item")
+                    if (badItems.isNotEmpty()) {
+                        appendLine("❌ Я не молодец:")
+                        badItems.forEachIndexed { idx, item ->
+                            appendLine("${idx + 1}. ❌ $item")
+                        }
+                        appendLine()
                     }
-                    appendLine()
                 }
-                
                 appendLine("📤 Опубликовано через LazyBones")
             }
             
