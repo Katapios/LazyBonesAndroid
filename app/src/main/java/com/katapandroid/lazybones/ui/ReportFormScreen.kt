@@ -35,15 +35,15 @@ import androidx.compose.animation.AnimatedVisibility
 fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: () -> Unit = {}) {
     val goodTags by viewModel.goodTags.collectAsState()
     val badTags by viewModel.badTags.collectAsState()
+    val selectedGoodTags by viewModel.selectedGoodTags.collectAsState()
+    val selectedBadTags by viewModel.selectedBadTags.collectAsState()
+    val goodFields by viewModel.goodFields.collectAsState()
+    val badFields by viewModel.badFields.collectAsState()
 
     // Состояния good/bad
     var selectedTab by remember { mutableStateOf(0) } // 0 = good, 1 = bad
     var wheelGoodIdx by remember { mutableStateOf(0) }
     var wheelBadIdx by remember { mutableStateOf(0) }
-    var selectedGoodTags by remember { mutableStateOf(listOf<String>()) }
-    var selectedBadTags by remember { mutableStateOf(listOf<String>()) }
-    var goodFields by remember { mutableStateOf(mapOf<String, TextFieldValue>()) }
-    var badFields by remember { mutableStateOf(mapOf<String, TextFieldValue>()) }
 
     val allGoodTags = goodTags.map { it.text }
     val allBadTags = badTags.map { it.text }
@@ -51,8 +51,8 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
     val wheelTags = if (selectedTab == 0) allGoodTags.filter { it !in selectedGoodTags } else allBadTags.filter { it !in selectedBadTags }
     val selectedTags = if (selectedTab == 0) selectedGoodTags else selectedBadTags
     val fields = if (selectedTab == 0) goodFields else badFields
-    val setSelectedTags: (List<String>) -> Unit = if (selectedTab == 0) { { selectedGoodTags = it } } else { { selectedBadTags = it } }
-    val setFields: (Map<String, TextFieldValue>) -> Unit = if (selectedTab == 0) { { goodFields = it } } else { { badFields = it } }
+    val setSelectedTags: (List<String>) -> Unit = if (selectedTab == 0) { { viewModel.setSelectedGoodTags(it) } } else { { viewModel.setSelectedBadTags(it) } }
+    val setFields: (Map<String, TextFieldValue>) -> Unit = if (selectedTab == 0) { { viewModel.setGoodFields(it) } } else { { viewModel.setBadFields(it) } }
     val wheelIdx = if (selectedTab == 0) wheelGoodIdx else wheelBadIdx
     val setWheelIdx: (Int) -> Unit = if (selectedTab == 0) { { wheelGoodIdx = it } } else { { wheelBadIdx = it } }
 
@@ -271,7 +271,14 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             Button(
-                onClick = { /* сохранить */ },
+                onClick = {
+                    // Сохраняем отчёт с накопленными good/bad пунктами
+                    viewModel.saveReport(
+                        goodItems = selectedGoodTags,
+                        badItems = selectedBadTags,
+                        onSaved = onBack
+                    )
+                },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
                 shape = RoundedCornerShape(12.dp)

@@ -23,5 +23,9 @@ class ReportsViewModel(
     }
 
     suspend fun addPost(post: Post) = postRepository.insert(post)
-    suspend fun deletePost(post: Post) = postRepository.delete(post)
+    suspend fun deletePost(post: Post) {
+        println("DEBUG: ReportsViewModel - Deleting post: ${post.date}")
+        postRepository.delete(post)
+        println("DEBUG: ReportsViewModel - Post deleted successfully")
+    }
 } 

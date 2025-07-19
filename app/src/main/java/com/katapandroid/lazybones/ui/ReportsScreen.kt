@@ -22,6 +22,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.*
+import org.koin.androidx.compose.koinViewModel
+import com.katapandroid.lazybones.data.Post
+import com.katapandroid.lazybones.ui.ReportsViewModel
+import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.Close
 
 // Мок-данные для верстки
 private val mockLocalReports = listOf(
@@ -52,10 +57,18 @@ data class ReportUi(
 )
 
 @Composable
-fun ReportsScreen() {
-    var selectionMode by remember { mutableStateOf(false) }
-    var selectedReports by remember { mutableStateOf(setOf<Int>()) }
+fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
+    val posts by viewModel.posts.collectAsState()
+    
+    // Отдельные состояния для локальных и кастомных отчётов
+    var localSelectionMode by remember { mutableStateOf(false) }
+    var selectedLocalReports by remember { mutableStateOf(setOf<Int>()) }
+    
+    var customSelectionMode by remember { mutableStateOf(false) }
+    var selectedCustomReports by remember { mutableStateOf(setOf<Int>()) }
+    
     val dateFormat = remember { SimpleDateFormat("d MMMM yyyy", Locale.getDefault()) }
+    val coroutineScope = rememberCoroutineScope()
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(
@@ -67,46 +80,109 @@ fun ReportsScreen() {
             item {
                 SectionHeader(
                     title = "ЛОКАЛЬНЫЕ ОТЧЁТЫ",
-                    selectionMode = selectionMode,
+                    selectionMode = localSelectionMode,
+                    selectedCount = selectedLocalReports.size,
+                    totalCount = posts.size,
                     onSelectAll = {
-                        selectionMode = true
-                        selectedReports = mockLocalReports.indices.toSet()
+                        localSelectionMode = true
+                        selectedLocalReports = posts.indices.toSet()
                     },
                     onCancel = {
-                        selectionMode = false
-                        selectedReports = emptySet()
+                        localSelectionMode = false
+                        selectedLocalReports = emptySet()
+                    },
+                    onDelete = {
+                        coroutineScope.launch {
+                            println("DEBUG: Deleting local posts - selectedLocalReports: $selectedLocalReports")
+                            // Получаем актуальный список постов перед удалением
+                            val currentPosts = posts.toList()
+                            println("DEBUG: Current posts count: ${currentPosts.size}")
+                            selectedLocalReports.forEach { idx ->
+                                if (idx < currentPosts.size) {
+                                    println("DEBUG: Deleting local post at index: $idx")
+                                    viewModel.deletePost(currentPosts[idx])
+                                }
+                            }
+                            localSelectionMode = false
+                            selectedLocalReports = emptySet()
+                            println("DEBUG: Local selection cleared")
+                        }
                     }
                 )
             }
-            items(mockLocalReports.indices.toList()) { idx ->
-                val report = mockLocalReports[idx]
-                ReportCard(
-                    report = report,
-                    dateFormat = dateFormat,
-                    selected = selectedReports.contains(idx),
-                    selectionMode = selectionMode,
-                    onSelect = {
-                        selectedReports = if (selectedReports.contains(idx))
-                            selectedReports - idx else selectedReports + idx
-                    },
-                    onSend = {},
-                    onDelete = {},
-                    onSave = {}
-                )
+            if (posts.isEmpty()) {
+                item {
+                    Text(
+                        text = "Еще нет созданных локальных отчетов",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 16.dp)
+                    )
+                }
+            } else {
+                items(posts.indices.toList()) { idx ->
+                    val post = posts[idx]
+                    val report = ReportUi(
+                        date = post.date,
+                        good = post.goodItems,
+                        bad = post.badItems,
+                        isCustom = false,
+                        isSaved = true
+                    )
+                    ReportCard(
+                        report = report,
+                        dateFormat = dateFormat,
+                        selected = selectedLocalReports.contains(idx),
+                        onSelect = {
+                            // Всегда включаем режим выделения при первом нажатии на отчёт
+                            if (!localSelectionMode) {
+                                localSelectionMode = true
+                                selectedLocalReports = setOf(idx)
+                                println("DEBUG: Entered local selection mode - selectedLocalReports: $selectedLocalReports")
+                            } else {
+                                // В режиме выделения переключаем состояние элемента
+                                selectedLocalReports = if (selectedLocalReports.contains(idx))
+                                    selectedLocalReports - idx else selectedLocalReports + idx
+                                println("DEBUG: Local selection mode - selectedLocalReports: $selectedLocalReports")
+                                
+                                // Если сняли выделение со всех элементов, выключаем режим выделения
+                                if (selectedLocalReports.isEmpty()) {
+                                    localSelectionMode = false
+                                    println("DEBUG: Local selection mode disabled - no items selected")
+                                }
+                            }
+                        },
+                        onSend = {},
+                        onDelete = {},
+                        onSave = {}
+                    )
+                }
             }
             // Кастомные отчёты
             item {
                 Spacer(Modifier.height(16.dp))
                 SectionHeader(
                     title = "КАСТОМНЫЕ ОТЧЁТЫ",
-                    selectionMode = selectionMode,
+                    selectionMode = customSelectionMode,
+                    selectedCount = selectedCustomReports.size,
+                    totalCount = mockCustomReports.size,
                     onSelectAll = {
-                        selectionMode = true
-                        selectedReports = mockCustomReports.indices.map { it + 1000 }.toSet()
+                        customSelectionMode = true
+                        selectedCustomReports = mockCustomReports.indices.toSet()
                     },
                     onCancel = {
-                        selectionMode = false
-                        selectedReports = emptySet()
+                        customSelectionMode = false
+                        selectedCustomReports = emptySet()
+                    },
+                    onDelete = {
+                        coroutineScope.launch {
+                            println("DEBUG: Deleting custom reports - selectedCustomReports: $selectedCustomReports")
+                            // Здесь можно добавить логику удаления кастомных отчётов
+                            // Пока что просто очищаем выделение
+                            customSelectionMode = false
+                            selectedCustomReports = emptySet()
+                            println("DEBUG: Custom selection cleared")
+                        }
                     }
                 )
             }
@@ -115,12 +191,25 @@ fun ReportsScreen() {
                 ReportCard(
                     report = report,
                     dateFormat = dateFormat,
-                    selected = selectedReports.contains(idx + 1000),
-                    selectionMode = selectionMode,
+                    selected = selectedCustomReports.contains(idx),
                     onSelect = {
-                        val key = idx + 1000
-                        selectedReports = if (selectedReports.contains(key))
-                            selectedReports - key else selectedReports + key
+                        // Всегда включаем режим выделения при первом нажатии на отчёт
+                        if (!customSelectionMode) {
+                            customSelectionMode = true
+                            selectedCustomReports = setOf(idx)
+                            println("DEBUG: Entered custom selection mode - selectedCustomReports: $selectedCustomReports")
+                        } else {
+                            // В режиме выделения переключаем состояние элемента
+                            selectedCustomReports = if (selectedCustomReports.contains(idx))
+                                selectedCustomReports - idx else selectedCustomReports + idx
+                            println("DEBUG: Custom selection mode - selectedCustomReports: $selectedCustomReports")
+                            
+                            // Если сняли выделение со всех элементов, выключаем режим выделения
+                            if (selectedCustomReports.isEmpty()) {
+                                customSelectionMode = false
+                                println("DEBUG: Custom selection mode disabled - no items selected")
+                            }
+                        }
                     },
                     onSend = {},
                     onDelete = {},
@@ -193,7 +282,15 @@ fun ReportsScreen() {
 }
 
 @Composable
-private fun SectionHeader(title: String, selectionMode: Boolean, onSelectAll: () -> Unit, onCancel: () -> Unit) {
+private fun SectionHeader(
+    title: String, 
+    selectionMode: Boolean, 
+    selectedCount: Int = 0,
+    totalCount: Int = 0,
+    onSelectAll: () -> Unit, 
+    onCancel: () -> Unit,
+    onDelete: () -> Unit
+) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -207,9 +304,16 @@ private fun SectionHeader(title: String, selectionMode: Boolean, onSelectAll: ()
             modifier = Modifier.weight(1f)
         )
         if (selectionMode) {
-            TextButton(onClick = onCancel) { Text("Отмена") }
+            if (selectedCount > 0) {
+                TextButton(onClick = onDelete) { 
+                    Text("Удалить", color = MaterialTheme.colorScheme.error) 
+                }
+                TextButton(onClick = onCancel) { Text("Отмена") }
+            }
         } else {
-            TextButton(onClick = onSelectAll) { Text("Выбрать все") }
+            if (totalCount > 0) {
+                TextButton(onClick = onSelectAll) { Text("Выбрать все") }
+            }
         }
     }
 }
@@ -219,7 +323,6 @@ private fun ReportCard(
     report: ReportUi,
     dateFormat: SimpleDateFormat,
     selected: Boolean,
-    selectionMode: Boolean,
     onSelect: () -> Unit,
     onSend: () -> Unit,
     onDelete: () -> Unit,
@@ -233,7 +336,7 @@ private fun ReportCard(
                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                 shape = RoundedCornerShape(16.dp)
             )
-            .clickable(enabled = selectionMode) { onSelect() },
+            .clickable { onSelect() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
@@ -274,7 +377,7 @@ private fun ReportCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
                         Spacer(Modifier.width(4.dp))
-                        Icon(Icons.Default.Delete, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(16.dp))
                     }
                 }
             }
