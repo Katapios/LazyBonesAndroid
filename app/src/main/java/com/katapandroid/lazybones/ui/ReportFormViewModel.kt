@@ -59,6 +59,22 @@ class ReportFormViewModel(
     fun setGoodFields(fields: Map<String, TextFieldValue>) { _goodFields.value = fields }
     fun setBadFields(fields: Map<String, TextFieldValue>) { _badFields.value = fields }
 
+    fun addTag(text: String, type: TagType) {
+        viewModelScope.launch {
+            try {
+                val tag = Tag(
+                    text = text,
+                    type = type
+                )
+                val result = tagRepository.insert(tag)
+                println("Tag saved successfully with id: $result")
+            } catch (e: Exception) {
+                println("Error saving tag: ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+
     fun saveReport(goodItems: List<String>, badItems: List<String>, onSaved: () -> Unit) {
         viewModelScope.launch {
             val post = Post(

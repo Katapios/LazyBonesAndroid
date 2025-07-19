@@ -31,9 +31,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.katapandroid.lazybones.ui.ReportsScreen
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.ArrowBack
 import org.koin.androidx.compose.getViewModel
+import org.koin.androidx.compose.koinViewModel
 import androidx.compose.runtime.mutableStateOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -50,7 +51,7 @@ import com.katapandroid.lazybones.ui.ReportFormScreen
 sealed class BottomNavItem(val route: String, val label: String, val icon: ImageVector) {
     object Main : BottomNavItem("main", "Главная", Icons.Default.Home)
     object Plan : BottomNavItem("plan", "Планирование", Icons.Default.Edit)
-    object Reports : BottomNavItem("reports", "Отчёты", Icons.Default.List)
+    object Reports : BottomNavItem("reports", "Отчёты", Icons.AutoMirrored.Filled.List)
     object Settings : BottomNavItem("settings", "Настройки", Icons.Default.Settings)
 }
 
@@ -284,8 +285,6 @@ fun GoodBadProgressBar(
     modifier: Modifier = Modifier
 ) {
     val total = goodCount + badCount
-    val goodRatio = if (total == 0) 0.5f else goodCount.toFloat() / total
-    val badRatio = if (total == 0) 0.5f else badCount.toFloat() / total
     
     Box(
         modifier = modifier
@@ -294,23 +293,36 @@ fun GoodBadProgressBar(
             .background(Color.LightGray),
         contentAlignment = Alignment.CenterStart
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Зелёная часть (good)
+        if (total == 0) {
+            // Если нет данных, показываем серую полоску
             Box(
                 modifier = Modifier
-                    .weight(goodRatio)
-                    .fillMaxHeight()
-                    .background(Color(0xFF4CAF50))
+                    .fillMaxSize()
+                    .background(Color.Gray)
             )
-            // Красная часть (bad)
-            Box(
-                modifier = Modifier
-                    .weight(badRatio)
-                    .fillMaxHeight()
-                    .background(Color(0xFFF44336))
-            )
+        } else {
+            Row(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Зелёная часть (good)
+                if (goodCount > 0) {
+                    Box(
+                        modifier = Modifier
+                            .weight(goodCount.toFloat())
+                            .fillMaxHeight()
+                            .background(Color(0xFF4CAF50))
+                    )
+                }
+                // Красная часть (bad)
+                if (badCount > 0) {
+                    Box(
+                        modifier = Modifier
+                            .weight(badCount.toFloat())
+                            .fillMaxHeight()
+                            .background(Color(0xFFF44336))
+                    )
+                }
+            }
         }
     }
 }
@@ -384,7 +396,7 @@ fun MainScreenMock(
 @Composable
 fun ReportFormScreen(
     onBack: () -> Unit = {},
-    viewModel: com.katapandroid.lazybones.ui.ReportFormViewModel = getViewModel()
+    viewModel: com.katapandroid.lazybones.ui.ReportFormViewModel = koinViewModel()
 ) {
     val content = viewModel.content.collectAsState().value
     val goodCount = viewModel.goodCount.collectAsState().value

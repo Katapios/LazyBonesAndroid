@@ -24,6 +24,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.katapandroid.lazybones.ui.ReportFormViewModel
+import com.katapandroid.lazybones.data.TagType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import org.koin.androidx.compose.getViewModel
@@ -44,6 +45,10 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
     var selectedTab by remember { mutableStateOf(0) } // 0 = good, 1 = bad
     var wheelGoodIdx by remember { mutableStateOf(0) }
     var wheelBadIdx by remember { mutableStateOf(0) }
+    
+    // Состояние для бабла "Сохранить тег"
+    var lastInputText by remember { mutableStateOf("") }
+    var showSaveTagBubble by remember { mutableStateOf(false) }
 
     val allGoodTags = goodTags.map { it.text }
     val allBadTags = badTags.map { it.text }
@@ -188,7 +193,6 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
                 selectedTags.forEach { tag ->
                     ChipTag(
                         text = tag,
-                        selected = true,
                         onRemove = {
                             setSelectedTags(selectedTags - tag)
                             setFields(fields - tag)
@@ -206,7 +210,16 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
         ) {
             OutlinedTextField(
                 value = customInput,
-                onValueChange = { customInput = it },
+                onValueChange = { 
+                    customInput = it
+                    // Показываем бабл только если есть текст и он не пустой
+                    if (it.text.trim().isNotEmpty()) {
+                        lastInputText = it.text.trim()
+                        showSaveTagBubble = true
+                    } else {
+                        showSaveTagBubble = false
+                    }
+                },
                 placeholder = { Text("Добавить пункт") },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
@@ -234,6 +247,7 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
                             setFields(badFields + (text to TextFieldValue(text)))
                         }
                         customInput = TextFieldValue()
+                        showSaveTagBubble = false
                     }
                 },
                 modifier = Modifier.size(48.dp),
@@ -252,6 +266,73 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
                     else 
                         MaterialTheme.colorScheme.onError
                 )
+            }
+        }
+        
+        // Бабл "Сохранить тег"
+        if (showSaveTagBubble && lastInputText.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                shape = MaterialTheme.shapes.medium,
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (selectedTab == 0) 
+                        MaterialTheme.colorScheme.primaryContainer 
+                    else 
+                        MaterialTheme.colorScheme.errorContainer
+                )
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        "Сохранить тег \"$lastInputText\"?",
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (selectedTab == 0) 
+                            MaterialTheme.colorScheme.onPrimaryContainer 
+                        else 
+                            MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            try {
+                                // Проверяем, что тег не существует
+                                val existingTags = if (selectedTab == 0) allGoodTags else allBadTags
+                                if (lastInputText !in existingTags) {
+                                    // Сохраняем тег через ViewModel
+                                    viewModel.addTag(lastInputText, if (selectedTab == 0) TagType.GOOD else TagType.BAD)
+                                    println("Saving tag: $lastInputText")
+                                } else {
+                                    println("Tag already exists: $lastInputText")
+                                }
+                            } catch (e: Exception) {
+                                println("Error in save tag button: ${e.message}")
+                                e.printStackTrace()
+                            }
+                            showSaveTagBubble = false
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (selectedTab == 0) 
+                                MaterialTheme.colorScheme.primary 
+                            else 
+                                MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text(
+                            "Сохранить",
+                            color = if (selectedTab == 0) 
+                                MaterialTheme.colorScheme.onPrimary 
+                            else 
+                                MaterialTheme.colorScheme.onError
+                        )
+                    }
+                }
             }
         }
         Spacer(Modifier.height(8.dp))
@@ -418,7 +499,7 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
 
 
 @Composable
-private fun ChipTag(text: String, selected: Boolean = true, onRemove: () -> Unit) {
+private fun ChipTag(text: String, onRemove: () -> Unit) {
     Card(
         modifier = Modifier.padding(vertical = 4.dp),
         shape = RoundedCornerShape(16.dp),
