@@ -50,6 +50,9 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
     var customSelectionMode by remember { mutableStateOf(false) }
     var selectedCustomReports by remember { mutableStateOf(setOf<Int>()) }
     
+    // Состояние для экрана оценки
+    var showEvaluationScreen by remember { mutableStateOf<Post?>(null) }
+    
     val dateFormat = remember { SimpleDateFormat("d MMMM yyyy", Locale.getDefault()) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -178,10 +181,10 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                     val post = customPosts[idx]
                     val report = ReportUi(
                         date = post.date,
-                        good = emptyList(), // Кастомные отчёты не имеют good/bad элементов
-                        bad = post.checklist, // Используем checklist как "плохие" элементы для отображения
+                        good = if (post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()) post.goodItems else emptyList(),
+                        bad = if (post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()) post.badItems else post.checklist,
                         isCustom = true,
-                        isSaved = false
+                        isSaved = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()
                     )
                     ReportCard(
                         report = report,
@@ -204,7 +207,7 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                             }
                         },
                         onSend = {},
-                        onDelete = {},
+                        onDelete = { showEvaluationScreen = post },
                         onSave = {}
                     )
                 }
@@ -272,6 +275,19 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
             }
         }
     }
+    
+    // Экран оценки кастомного отчёта
+    showEvaluationScreen?.let { post ->
+        CustomReportEvaluationScreen(
+            post = post,
+            onDismiss = { showEvaluationScreen = null },
+            onSave = { updatedPost ->
+                coroutineScope.launch {
+                    viewModel.updatePost(updatedPost)
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -335,42 +351,86 @@ private fun ReportCard(
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                if (report.isSaved) {
+                    Icon(Icons.Default.Done, contentDescription = "Сохранено", tint = Color(0xFF4CAF50))
+                    Spacer(Modifier.width(8.dp))
+                }
                 Text(
                     text = dateFormat.format(report.date),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f)
                 )
-                if (report.isSaved) {
-                    Icon(Icons.Default.Done, contentDescription = "Сохранено", tint = Color(0xFF4CAF50))
-                }
                 if (report.isCustom) {
                     IconButton(onClick = onSend) {
                         Icon(Icons.Default.Send, contentDescription = "Отправить", tint = MaterialTheme.colorScheme.primary)
                     }
-                    IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = "Удалить", tint = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.width(8.dp))
+                    OutlinedButton(
+                        onClick = onDelete,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Оценить", style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }
             Spacer(Modifier.height(8.dp))
             if (report.good.isNotEmpty()) {
-                Text("Я молодец:", color = Color(0xFF388E3C), fontWeight = FontWeight.Bold)
-                report.good.forEachIndexed { idx, item ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                if (report.isCustom && report.isSaved) {
+                    // Для оценённых кастомных отчётов показываем с заголовком "Я молодец:" и иконками
+                    Text("Я молодец:", color = Color(0xFF388E3C), fontWeight = FontWeight.Bold)
+                    report.good.forEachIndexed { idx, item ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
+                        }
+                    }
+                } else if (report.isCustom && !report.isSaved) {
+                    // Для неоценённых кастомных отчётов показываем просто список без заголовка и иконок
+                    report.good.forEachIndexed { idx, item ->
                         Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
-                        Spacer(Modifier.width(4.dp))
-                        Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
+                    }
+                } else {
+                    // Для обычных отчётов показываем с заголовком "Я молодец:" и иконками
+                    Text("Я молодец:", color = Color(0xFF388E3C), fontWeight = FontWeight.Bold)
+                    report.good.forEachIndexed { idx, item ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
+                        }
                     }
                 }
             }
             if (report.bad.isNotEmpty()) {
                 Spacer(Modifier.height(4.dp))
-                Text("Я не молодец:", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold)
-                report.bad.forEachIndexed { idx, item ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                if (report.isCustom && report.isSaved) {
+                    // Для оценённых кастомных отчётов показываем с заголовком "Я не молодец:" и иконками
+                    Text("Я не молодец:", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold)
+                    report.bad.forEachIndexed { idx, item ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(16.dp))
+                        }
+                    }
+                } else if (report.isCustom && !report.isSaved) {
+                    // Для неоценённых кастомных отчётов показываем просто список без заголовка и иконок
+                    report.bad.forEachIndexed { idx, item ->
                         Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
-                        Spacer(Modifier.width(4.dp))
-                        Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(16.dp))
+                    }
+                } else {
+                    // Для обычных отчётов показываем с заголовком "Я не молодец:" и иконками
+                    Text("Я не молодец:", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold)
+                    report.bad.forEachIndexed { idx, item ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(16.dp))
+                        }
                     }
                 }
             }
@@ -409,4 +469,4 @@ private fun TelegramReportCard() {
             Text("Опубликовано", color = Color(0xFF388E3C), style = MaterialTheme.typography.labelMedium)
         }
     }
-} 
+}

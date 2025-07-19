@@ -22,7 +22,7 @@ class ReportsViewModel(
     init {
         postRepository.getAllPosts().onEach { posts ->
             _posts.value = posts.filter { it.goodItems.isNotEmpty() || it.badItems.isNotEmpty() }
-            _customPosts.value = posts.filter { it.checklist.isNotEmpty() && it.goodItems.isEmpty() && it.badItems.isEmpty() }
+            _customPosts.value = posts.filter { it.checklist.isNotEmpty() }
         }.launchIn(viewModelScope)
     }
 
@@ -33,5 +33,9 @@ class ReportsViewModel(
     
     suspend fun deleteCustomPost(post: Post) {
         postRepository.delete(post)
+    }
+    
+    suspend fun updatePost(post: Post) {
+        postRepository.update(post)
     }
 } 
