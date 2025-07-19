@@ -8,6 +8,9 @@ import com.katapandroid.lazybones.ui.ReportsViewModel
 import com.katapandroid.lazybones.ui.ReportFormViewModel
 import com.katapandroid.lazybones.ui.VoiceNotesViewModel
 import com.katapandroid.lazybones.ui.PlanViewModel
+import com.katapandroid.lazybones.ui.SettingsViewModel
+import com.katapandroid.lazybones.network.TelegramService
+import com.katapandroid.lazybones.data.SettingsRepository
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
@@ -28,9 +31,12 @@ val appModule = module {
     single { VoiceNoteRepository(get()) }
     single { PlanItemRepository(get()) }
     single { TagRepository(get()) }
+    single { TelegramService() }
+    single { SettingsRepository(get()) }
     viewModel { MainViewModel(get()) }
-    viewModel { ReportsViewModel(get()) }
+    viewModel { ReportsViewModel(get<PostRepository>(), get<TelegramService>()) }
     viewModel { ReportFormViewModel(get<PostRepository>(), get<TagRepository>()) }
     viewModel { VoiceNotesViewModel(get()) }
     viewModel { PlanViewModel(get<PlanItemRepository>(), get<TagRepository>()) }
+    viewModel { SettingsViewModel(get<TelegramService>(), get<SettingsRepository>()) }
 } 

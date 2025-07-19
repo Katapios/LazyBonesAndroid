@@ -15,15 +15,19 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.AnimatedVisibility
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun SettingsScreen() {
-    var phoneName by remember { mutableStateOf(TextFieldValue()) }
-    var telegramToken by remember { mutableStateOf(TextFieldValue()) }
-    var telegramChatId by remember { mutableStateOf(TextFieldValue()) }
-    var telegramBotId by remember { mutableStateOf(TextFieldValue()) }
-    var notificationsEnabled by remember { mutableStateOf(false) }
-    var notificationMode by remember { mutableStateOf(0) } // 0 = каждый час, 1 = 2 раза в день
+fun SettingsScreen(viewModel: SettingsViewModel = koinViewModel()) {
+    val phoneName by viewModel.phoneName.collectAsState()
+    val telegramToken by viewModel.telegramToken.collectAsState()
+    val telegramChatId by viewModel.telegramChatId.collectAsState()
+    val telegramBotId by viewModel.telegramBotId.collectAsState()
+    val notificationsEnabled by viewModel.notificationsEnabled.collectAsState()
+    val notificationMode by viewModel.notificationMode.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val testMessageResult by viewModel.testMessageResult.collectAsState()
+    
     val notificationTimes = if (notificationMode == 0) listOf("17:00", "18:00", "19:00", "20:00", "21:00") else listOf("12:00", "21:00")
 
     Column(
@@ -50,14 +54,14 @@ fun SettingsScreen() {
             Column(Modifier.padding(16.dp)) {
                 OutlinedTextField(
                     value = phoneName,
-                    onValueChange = { phoneName = it },
+                    onValueChange = { viewModel.setPhoneName(it) },
                     placeholder = { Text("Введите имя телефона") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 Spacer(Modifier.height(12.dp))
                 Button(
-                    onClick = { /* save phone name */ },
+                    onClick = { viewModel.savePhoneName() },
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium
                 ) {
@@ -77,7 +81,7 @@ fun SettingsScreen() {
             Column(Modifier.padding(16.dp)) {
                 OutlinedTextField(
                     value = telegramToken,
-                    onValueChange = { telegramToken = it },
+                    onValueChange = { viewModel.setTelegramToken(it) },
                     placeholder = { Text("Токен Telegram-бота") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
@@ -85,7 +89,7 @@ fun SettingsScreen() {
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = telegramChatId,
-                    onValueChange = { telegramChatId = it },
+                    onValueChange = { viewModel.setTelegramChatId(it) },
                     placeholder = { Text("chat_id группы") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
@@ -93,14 +97,14 @@ fun SettingsScreen() {
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = telegramBotId,
-                    onValueChange = { telegramBotId = it },
+                    onValueChange = { viewModel.setTelegramBotId(it) },
                     placeholder = { Text("ID бота (опционально)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 Spacer(Modifier.height(12.dp))
                 Button(
-                    onClick = { /* save telegram data */ },
+                    onClick = { viewModel.saveTelegramSettings() },
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium
                 ) {
@@ -108,12 +112,54 @@ fun SettingsScreen() {
                 }
                 Spacer(Modifier.height(8.dp))
                 OutlinedButton(
-                    onClick = { /* check telegram connection */ },
+                    onClick = { viewModel.testTelegramConnection() },
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                    enabled = !isLoading
                 ) {
-                    Text("Проверить связь")
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(if (isLoading) "Проверка..." else "Проверить связь")
+                }
+                
+                // Показываем результат тестирования
+                testMessageResult?.let { result ->
+                    Spacer(Modifier.height(8.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (result.startsWith("✅")) 
+                                MaterialTheme.colorScheme.primaryContainer 
+                            else 
+                                MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = result,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (result.startsWith("✅")) 
+                                    MaterialTheme.colorScheme.onPrimaryContainer 
+                                else 
+                                    MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Spacer(Modifier.weight(1f))
+                            TextButton(
+                                onClick = { viewModel.clearTestMessageResult() }
+                            ) {
+                                Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -129,7 +175,7 @@ fun SettingsScreen() {
             Column(Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Получать уведомления", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                    Switch(checked = notificationsEnabled, onCheckedChange = { notificationsEnabled = it })
+                    Switch(checked = notificationsEnabled, onCheckedChange = { viewModel.setNotificationsEnabled(it) })
                 }
                 AnimatedVisibility(visible = notificationsEnabled) {
                     Column {
@@ -137,7 +183,7 @@ fun SettingsScreen() {
                         SegmentedButtonRow(
                             options = listOf("Каждый час", "2 раза в день"),
                             selectedIndex = notificationMode,
-                            onSelect = { notificationMode = it }
+                            onSelect = { viewModel.setNotificationMode(it) }
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(

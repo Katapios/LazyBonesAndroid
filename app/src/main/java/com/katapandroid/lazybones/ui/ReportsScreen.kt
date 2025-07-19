@@ -54,6 +54,11 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
     // Состояние для экрана оценки
     var showEvaluationScreen by remember { mutableStateOf<Post?>(null) }
     
+    // Состояние для публикации в Telegram
+    var showTelegramSettingsDialog by remember { mutableStateOf<Post?>(null) }
+    var isPublishing by remember { mutableStateOf(false) }
+    var publishResult by remember { mutableStateOf<String?>(null) }
+    
     val dateFormat = remember { SimpleDateFormat("d MMMM yyyy", Locale.getDefault()) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -207,7 +212,7 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                                 }
                             }
                         },
-                        onSend = {},
+                        onSend = { showTelegramSettingsDialog = post },
                         onDelete = { showEvaluationScreen = post },
                         onSave = {}
                     )
@@ -287,6 +292,41 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                     viewModel.updatePost(updatedPost)
                 }
             }
+        )
+    }
+    
+    // Диалог публикации в Telegram
+    showTelegramSettingsDialog?.let { post ->
+        TelegramPublishDialog(
+            post = post,
+            onDismiss = { 
+                showTelegramSettingsDialog = null
+                publishResult = null
+            },
+            onPublish = { token, chatId ->
+                coroutineScope.launch {
+                    isPublishing = true
+                    publishResult = null
+                    
+                    try {
+                        val result = viewModel.publishCustomReportToTelegram(post, token, chatId)
+                        result.fold(
+                            onSuccess = { message ->
+                                publishResult = "✅ $message"
+                            },
+                            onFailure = { exception ->
+                                publishResult = "❌ Ошибка: ${exception.message}"
+                            }
+                        )
+                    } catch (e: Exception) {
+                        publishResult = "❌ Ошибка: ${e.message}"
+                    } finally {
+                        isPublishing = false
+                    }
+                }
+            },
+            isPublishing = isPublishing,
+            publishResult = publishResult
         )
     }
 }

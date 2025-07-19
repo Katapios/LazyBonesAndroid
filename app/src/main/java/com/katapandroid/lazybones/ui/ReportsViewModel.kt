@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.katapandroid.lazybones.data.Post
 import com.katapandroid.lazybones.data.PostRepository
+import com.katapandroid.lazybones.network.TelegramService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,7 +12,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 class ReportsViewModel(
-    private val postRepository: PostRepository
+    private val postRepository: PostRepository,
+    private val telegramService: TelegramService
 ) : ViewModel() {
     private val _posts = MutableStateFlow<List<Post>>(emptyList())
     val posts: StateFlow<List<Post>> = _posts.asStateFlow()
@@ -41,5 +43,36 @@ class ReportsViewModel(
     
     suspend fun updatePost(post: Post) {
         postRepository.update(post)
+    }
+    
+    suspend fun publishCustomReportToTelegram(
+        post: Post,
+        token: String,
+        chatId: String
+    ): Result<String> {
+        return try {
+            val result = telegramService.sendCustomReport(
+                token = token,
+                chatId = chatId,
+                date = post.date,
+                checklist = post.checklist,
+                goodItems = post.goodItems,
+                badItems = post.badItems
+            )
+            
+            result.fold(
+                onSuccess = { 
+                    // Обновляем статус публикации
+                    val updatedPost = post.copy(published = true)
+                    postRepository.update(updatedPost)
+                    Result.success("Отчет успешно опубликован в Telegram")
+                },
+                onFailure = { exception ->
+                    Result.failure(exception)
+                }
+            )
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 } 
