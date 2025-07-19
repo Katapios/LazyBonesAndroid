@@ -19,23 +19,24 @@ import androidx.compose.ui.unit.dp
 import com.katapandroid.lazybones.data.PlanItem
 import com.katapandroid.lazybones.data.Tag
 import com.katapandroid.lazybones.data.TagType
-import org.koin.androidx.compose.getViewModel
+import org.koin.androidx.compose.koinViewModel
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
 import com.katapandroid.lazybones.data.PostRepository
-import org.koin.androidx.compose.get
+import org.koin.compose.koinInject
 
 @Composable
 fun PlanScreen(
-    viewModel: PlanViewModel = getViewModel()
+    viewModel: PlanViewModel = koinViewModel()
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    val postRepository = get<PostRepository>()
+    val postRepository = koinInject<PostRepository>()
     var selectedTab by remember { mutableStateOf(0) } // 0 = План, 1 = Теги
     val tabTitles = listOf("План", "Теги")
 
@@ -50,33 +51,22 @@ fun PlanScreen(
             }
         }
         AnimatedVisibility(visible = selectedTab == 0, enter = fadeIn(), exit = fadeOut()) {
-            PlanTab(viewModel)
+            PlanTab(viewModel, postRepository, snackbarHostState, coroutineScope)
         }
         AnimatedVisibility(visible = selectedTab == 1, enter = fadeIn(), exit = fadeOut()) {
             TagsTab(viewModel)
-        }
-        Spacer(Modifier.weight(1f))
-        Button(
-            onClick = {
-                coroutineScope.launch {
-                    viewModel.saveAsReport(postRepository)
-                    snackbarHostState.showSnackbar("Отчет сохранен")
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = MaterialTheme.shapes.large,
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-        ) {
-            Text("Сохранить как отчет", style = MaterialTheme.typography.titleMedium)
         }
         SnackbarHost(hostState = snackbarHostState)
     }
 }
 
 @Composable
-private fun PlanTab(viewModel: PlanViewModel) {
+private fun PlanTab(
+    viewModel: PlanViewModel,
+    postRepository: PostRepository,
+    snackbarHostState: SnackbarHostState,
+    coroutineScope: CoroutineScope
+) {
     val planItems by viewModel.planItems.collectAsState()
     var input by remember { mutableStateOf(TextFieldValue()) }
     var editingId by remember { mutableStateOf<Long?>(null) }
@@ -166,6 +156,24 @@ private fun PlanTab(viewModel: PlanViewModel) {
                         }
                     }
                 }
+            }
+        }
+        Spacer(Modifier.weight(1f))
+        if (planItems.isNotEmpty()) {
+            Button(
+                onClick = {
+                    coroutineScope.launch {
+                        viewModel.saveAsCustomReport(postRepository)
+                        snackbarHostState.showSnackbar("Кастомный отчет сформирован")
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = MaterialTheme.shapes.large,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+            ) {
+                Text("Сформировать отчет", style = MaterialTheme.typography.titleMedium)
             }
         }
     }

@@ -15,17 +15,23 @@ class ReportsViewModel(
 ) : ViewModel() {
     private val _posts = MutableStateFlow<List<Post>>(emptyList())
     val posts: StateFlow<List<Post>> = _posts.asStateFlow()
+    
+    private val _customPosts = MutableStateFlow<List<Post>>(emptyList())
+    val customPosts: StateFlow<List<Post>> = _customPosts.asStateFlow()
 
     init {
         postRepository.getAllPosts().onEach { posts ->
-            _posts.value = posts
+            _posts.value = posts.filter { it.goodItems.isNotEmpty() || it.badItems.isNotEmpty() }
+            _customPosts.value = posts.filter { it.checklist.isNotEmpty() && it.goodItems.isEmpty() && it.badItems.isEmpty() }
         }.launchIn(viewModelScope)
     }
 
     suspend fun addPost(post: Post) = postRepository.insert(post)
     suspend fun deletePost(post: Post) {
-        println("DEBUG: ReportsViewModel - Deleting post: ${post.date}")
         postRepository.delete(post)
-        println("DEBUG: ReportsViewModel - Post deleted successfully")
+    }
+    
+    suspend fun deleteCustomPost(post: Post) {
+        postRepository.delete(post)
     }
 } 

@@ -28,25 +28,7 @@ import com.katapandroid.lazybones.ui.ReportsViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Close
 
-// Мок-данные для верстки
-private val mockLocalReports = listOf(
-    ReportUi(
-        date = Date(),
-        good = listOf("Работавалы", "Спорт", "Питание"),
-        bad = listOf("Переедание", "Мало сна"),
-        isCustom = false,
-        isSaved = true
-    )
-)
-private val mockCustomReports = listOf(
-    ReportUi(
-        date = Date(System.currentTimeMillis() - 86400000L),
-        good = listOf(),
-        bad = listOf("бловорыва", "Цыфрфыфр", "Фывыфыфр", "Фывыфыф", "11111", "Фукака"),
-        isCustom = true,
-        isSaved = false
-    )
-)
+// Мок-данные больше не нужны, используем реальные данные из базы
 
 data class ReportUi(
     val date: Date,
@@ -59,6 +41,7 @@ data class ReportUi(
 @Composable
 fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
     val posts by viewModel.posts.collectAsState()
+    val customPosts by viewModel.customPosts.collectAsState()
     
     // Отдельные состояния для локальных и кастомных отчётов
     var localSelectionMode by remember { mutableStateOf(false) }
@@ -93,19 +76,15 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                     },
                     onDelete = {
                         coroutineScope.launch {
-                            println("DEBUG: Deleting local posts - selectedLocalReports: $selectedLocalReports")
                             // Получаем актуальный список постов перед удалением
                             val currentPosts = posts.toList()
-                            println("DEBUG: Current posts count: ${currentPosts.size}")
                             selectedLocalReports.forEach { idx ->
                                 if (idx < currentPosts.size) {
-                                    println("DEBUG: Deleting local post at index: $idx")
                                     viewModel.deletePost(currentPosts[idx])
                                 }
                             }
                             localSelectionMode = false
                             selectedLocalReports = emptySet()
-                            println("DEBUG: Local selection cleared")
                         }
                     }
                 )
@@ -138,17 +117,14 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                             if (!localSelectionMode) {
                                 localSelectionMode = true
                                 selectedLocalReports = setOf(idx)
-                                println("DEBUG: Entered local selection mode - selectedLocalReports: $selectedLocalReports")
                             } else {
                                 // В режиме выделения переключаем состояние элемента
                                 selectedLocalReports = if (selectedLocalReports.contains(idx))
                                     selectedLocalReports - idx else selectedLocalReports + idx
-                                println("DEBUG: Local selection mode - selectedLocalReports: $selectedLocalReports")
                                 
                                 // Если сняли выделение со всех элементов, выключаем режим выделения
                                 if (selectedLocalReports.isEmpty()) {
                                     localSelectionMode = false
-                                    println("DEBUG: Local selection mode disabled - no items selected")
                                 }
                             }
                         },
@@ -165,10 +141,10 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                     title = "КАСТОМНЫЕ ОТЧЁТЫ",
                     selectionMode = customSelectionMode,
                     selectedCount = selectedCustomReports.size,
-                    totalCount = mockCustomReports.size,
+                    totalCount = customPosts.size,
                     onSelectAll = {
                         customSelectionMode = true
-                        selectedCustomReports = mockCustomReports.indices.toSet()
+                        selectedCustomReports = customPosts.indices.toSet()
                     },
                     onCancel = {
                         customSelectionMode = false
@@ -176,45 +152,62 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                     },
                     onDelete = {
                         coroutineScope.launch {
-                            println("DEBUG: Deleting custom reports - selectedCustomReports: $selectedCustomReports")
-                            // Здесь можно добавить логику удаления кастомных отчётов
-                            // Пока что просто очищаем выделение
+                            val currentCustomPosts = customPosts.toList()
+                            selectedCustomReports.forEach { idx ->
+                                if (idx < currentCustomPosts.size) {
+                                    viewModel.deleteCustomPost(currentCustomPosts[idx])
+                                }
+                            }
                             customSelectionMode = false
                             selectedCustomReports = emptySet()
-                            println("DEBUG: Custom selection cleared")
                         }
                     }
                 )
             }
-            items(mockCustomReports.indices.toList()) { idx ->
-                val report = mockCustomReports[idx]
-                ReportCard(
-                    report = report,
-                    dateFormat = dateFormat,
-                    selected = selectedCustomReports.contains(idx),
-                    onSelect = {
-                        // Всегда включаем режим выделения при первом нажатии на отчёт
-                        if (!customSelectionMode) {
-                            customSelectionMode = true
-                            selectedCustomReports = setOf(idx)
-                            println("DEBUG: Entered custom selection mode - selectedCustomReports: $selectedCustomReports")
-                        } else {
-                            // В режиме выделения переключаем состояние элемента
-                            selectedCustomReports = if (selectedCustomReports.contains(idx))
-                                selectedCustomReports - idx else selectedCustomReports + idx
-                            println("DEBUG: Custom selection mode - selectedCustomReports: $selectedCustomReports")
-                            
-                            // Если сняли выделение со всех элементов, выключаем режим выделения
-                            if (selectedCustomReports.isEmpty()) {
-                                customSelectionMode = false
-                                println("DEBUG: Custom selection mode disabled - no items selected")
+            if (customPosts.isEmpty()) {
+                item {
+                    Text(
+                        text = "Еще нет созданных кастомных отчетов",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 16.dp)
+                    )
+                }
+            } else {
+                items(customPosts.indices.toList()) { idx ->
+                    val post = customPosts[idx]
+                    val report = ReportUi(
+                        date = post.date,
+                        good = emptyList(), // Кастомные отчёты не имеют good/bad элементов
+                        bad = post.checklist, // Используем checklist как "плохие" элементы для отображения
+                        isCustom = true,
+                        isSaved = false
+                    )
+                    ReportCard(
+                        report = report,
+                        dateFormat = dateFormat,
+                        selected = selectedCustomReports.contains(idx),
+                        onSelect = {
+                            // Всегда включаем режим выделения при первом нажатии на отчёт
+                            if (!customSelectionMode) {
+                                customSelectionMode = true
+                                selectedCustomReports = setOf(idx)
+                            } else {
+                                // В режиме выделения переключаем состояние элемента
+                                selectedCustomReports = if (selectedCustomReports.contains(idx))
+                                    selectedCustomReports - idx else selectedCustomReports + idx
+                                
+                                // Если сняли выделение со всех элементов, выключаем режим выделения
+                                if (selectedCustomReports.isEmpty()) {
+                                    customSelectionMode = false
+                                }
                             }
-                        }
-                    },
-                    onSend = {},
-                    onDelete = {},
-                    onSave = {}
-                )
+                        },
+                        onSend = {},
+                        onDelete = {},
+                        onSave = {}
+                    )
+                }
             }
             // --- Секция ИЗ TELEGRAM ---
             item {
