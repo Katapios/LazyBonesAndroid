@@ -5,11 +5,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Edit
@@ -28,12 +32,13 @@ import com.katapandroid.lazybones.data.TagType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import org.koin.androidx.compose.getViewModel
+import org.koin.androidx.compose.koinViewModel
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.AnimatedVisibility
 
 @Composable
-fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: () -> Unit = {}) {
+fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: () -> Unit = {}) {
     val goodTags by viewModel.goodTags.collectAsState()
     val badTags by viewModel.badTags.collectAsState()
     val selectedGoodTags by viewModel.selectedGoodTags.collectAsState()
@@ -65,219 +70,335 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
         Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 16.dp)
     ) {
-        Spacer(Modifier.height(16.dp))
-        // Верхняя панель
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("Отмена") }
-            Spacer(Modifier.weight(1f))
-            Text("Создание отчёта", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.weight(1f))
+        // Верхняя панель с градиентным фоном
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            MaterialTheme.colorScheme.surface
+                        )
+                    )
+                )
+                .padding(16.dp)
+        ) {
+            Row(
+                Modifier.fillMaxWidth(), 
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onBack,
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+                    )
+                ) { 
+                    Icon(
+                        Icons.Default.ArrowBack, 
+                        contentDescription = "Назад",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    ) 
+                }
+                Spacer(Modifier.weight(1f))
+                Text(
+                    "Создание отчёта", 
+                    style = MaterialTheme.typography.headlineSmall, 
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.weight(1f))
+                // Пустое место для баланса
+                Spacer(Modifier.width(48.dp))
+            }
         }
-        Spacer(Modifier.height(16.dp))
-        // Переключатель good/bad
-        Row(
-            Modifier
+        // Переключатель good/bad с улучшенным дизайном
+        Card(
+            modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(4.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
         ) {
-            Button(
-                onClick = { selectedTab = 0 },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (selectedTab == 0) 
-                        MaterialTheme.colorScheme.primary 
-                    else 
-                        MaterialTheme.colorScheme.surface
-                ),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    "👍 Молодец (${selectedGoodTags.size})",
-                    color = if (selectedTab == 0) 
-                        MaterialTheme.colorScheme.onPrimary 
-                    else 
-                        MaterialTheme.colorScheme.onSurface
-                )
-            }
-            Button(
-                onClick = { selectedTab = 1 },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (selectedTab == 1) 
-                        MaterialTheme.colorScheme.error 
-                    else 
-                        MaterialTheme.colorScheme.surface
-                ),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    "👎 Лаботряс (${selectedBadTags.size})",
-                    color = if (selectedTab == 1) 
-                        MaterialTheme.colorScheme.onError 
-                    else 
-                        MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        // WheelPicker тегов
-        if (wheelTags.isNotEmpty()) {
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .height(40.dp)
-                        .horizontalScroll(rememberScrollState()),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row {
-                        wheelTags.forEachIndexed { idx, tag ->
-                            val selected = idx == wheelIdx
-                            Text(
-                                text = tag,
-                                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                                modifier = Modifier
-                                    .padding(horizontal = 12.dp, vertical = 4.dp)
-                                    .background(
-                                        if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent,
-                                        RoundedCornerShape(8.dp)
-                                    )
-                                    .clickable { setWheelIdx(idx) }
-                            )
-                        }
-                    }
-                }
-                IconButton(
-                    onClick = {
-                        val tag = wheelTags.getOrNull(wheelIdx)
-                        if (tag != null) {
-                            setSelectedTags(selectedTags + tag)
-                            setFields(fields + (tag to TextFieldValue()))
-                        }
-                    },
-                    modifier = Modifier.size(40.dp),
-                    colors = IconButtonDefaults.iconButtonColors(
+                Button(
+                    onClick = { selectedTab = 0 },
+                    colors = ButtonDefaults.buttonColors(
                         containerColor = if (selectedTab == 0) 
                             MaterialTheme.colorScheme.primary 
                         else 
-                            MaterialTheme.colorScheme.error
+                            MaterialTheme.colorScheme.surface
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = if (selectedTab == 0) 4.dp else 0.dp
                     )
                 ) {
-                    Icon(
-                        Icons.Default.Add, 
-                        contentDescription = "Добавить", 
-                        tint = if (selectedTab == 0) 
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            "👍",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            "Молодец",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal,
+                            color = if (selectedTab == 0) 
+                                MaterialTheme.colorScheme.onPrimary 
+                            else 
+                                MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            "(${selectedGoodTags.size})",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (selectedTab == 0) 
+                                MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                            else 
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+                Button(
+                    onClick = { selectedTab = 1 },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (selectedTab == 1) 
+                            MaterialTheme.colorScheme.error 
+                        else 
+                            MaterialTheme.colorScheme.surface
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = if (selectedTab == 1) 4.dp else 0.dp
+                    )
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            "👎",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            "Лаботряс",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal,
+                            color = if (selectedTab == 1) 
+                                MaterialTheme.colorScheme.onError 
+                            else 
+                                MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            "(${selectedBadTags.size})",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (selectedTab == 1) 
+                                MaterialTheme.colorScheme.onError.copy(alpha = 0.8f)
+                            else 
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        // WheelPicker тегов с улучшенным дизайном
+        if (wheelTags.isNotEmpty()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .horizontalScroll(rememberScrollState()),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            wheelTags.forEachIndexed { idx, tag ->
+                                val selected = idx == wheelIdx
+                                Card(
+                                    modifier = Modifier
+                                        .clickable { setWheelIdx(idx) },
+                                    shape = RoundedCornerShape(8.dp),
+                                    elevation = CardDefaults.cardElevation(
+                                        defaultElevation = if (selected) 4.dp else 1.dp
+                                    ),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (selected) 
+                                            if (selectedTab == 0) 
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                            else 
+                                                MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+                                        else 
+                                            MaterialTheme.colorScheme.surface
+                                    )
+                                ) {
+                                    Text(
+                                        text = tag,
+                                        color = if (selected) 
+                                            if (selectedTab == 0) 
+                                                MaterialTheme.colorScheme.primary 
+                                            else 
+                                                MaterialTheme.colorScheme.error
+                                        else 
+                                            MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    FloatingActionButton(
+                        onClick = {
+                            val tag = wheelTags.getOrNull(wheelIdx)
+                            if (tag != null) {
+                                setSelectedTags(selectedTags + tag)
+                                setFields(fields + (tag to TextFieldValue(tag)))
+                            }
+                        },
+                        modifier = Modifier.size(48.dp),
+                        containerColor = if (selectedTab == 0) 
+                            MaterialTheme.colorScheme.primary 
+                        else 
+                            MaterialTheme.colorScheme.error,
+                        contentColor = if (selectedTab == 0) 
                             MaterialTheme.colorScheme.onPrimary 
                         else 
                             MaterialTheme.colorScheme.onError
-                    )
+                    ) {
+                        Icon(
+                            Icons.Default.Add, 
+                            contentDescription = "Добавить тег"
+                        )
+                    }
                 }
             }
         }
         Spacer(Modifier.height(8.dp))
-        // Горизонтальный слайдер выбранных тегов
-        if (selectedTags.isNotEmpty()) {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                selectedTags.forEach { tag ->
-                    ChipTag(
-                        text = tag,
-                        onRemove = {
-                            setSelectedTags(selectedTags - tag)
-                            setFields(fields - tag)
-                        }
-                    )
-                    Spacer(Modifier.width(8.dp))
-                }
-            }
-        }
+
         // Поле для добавления кастомного пункта (good/bad)
         var customInput by remember { mutableStateOf(TextFieldValue()) }
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        ) {
-            OutlinedTextField(
-                value = customInput,
-                onValueChange = { 
-                    customInput = it
-                    // Показываем бабл только если есть текст и он не пустой
-                    if (it.text.trim().isNotEmpty()) {
-                        lastInputText = it.text.trim()
-                        showSaveTagBubble = true
-                    } else {
-                        showSaveTagBubble = false
-                    }
-                },
-                placeholder = { Text("Добавить пункт") },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                shape = MaterialTheme.shapes.medium,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedBorderColor = if (selectedTab == 0) 
-                        MaterialTheme.colorScheme.primary 
-                    else 
-                        MaterialTheme.colorScheme.error,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                )
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(2.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
             )
-            Spacer(Modifier.width(8.dp))
-            IconButton(
-                onClick = {
-                    val text = customInput.text.trim()
-                    if (text.isNotEmpty()) {
-                        if (selectedTab == 0) {
-                            setSelectedTags(selectedGoodTags + text)
-                            setFields(goodFields + (text to TextFieldValue(text)))
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                OutlinedTextField(
+                    value = customInput,
+                    onValueChange = { 
+                        customInput = it
+                        // Показываем бабл только если есть текст и он не пустой
+                        if (it.text.trim().isNotEmpty()) {
+                            lastInputText = it.text.trim()
+                            showSaveTagBubble = true
                         } else {
-                            setSelectedTags(selectedBadTags + text)
-                            setFields(badFields + (text to TextFieldValue(text)))
+                            showSaveTagBubble = false
                         }
-                        customInput = TextFieldValue()
-                        showSaveTagBubble = false
-                    }
-                },
-                modifier = Modifier.size(48.dp),
-                colors = IconButtonDefaults.iconButtonColors(
+                    },
+                    placeholder = { 
+                        Text(
+                            "Добавить пункт",
+                            style = MaterialTheme.typography.bodyMedium
+                        ) 
+                    },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = if (selectedTab == 0) 
+                            MaterialTheme.colorScheme.primary 
+                        else 
+                            MaterialTheme.colorScheme.error,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                    ),
+                    textStyle = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(Modifier.width(12.dp))
+                FloatingActionButton(
+                    onClick = {
+                        val text = customInput.text.trim()
+                        if (text.isNotEmpty()) {
+                            if (selectedTab == 0) {
+                                setSelectedTags(selectedGoodTags + text)
+                                setFields(goodFields + (text to TextFieldValue(text)))
+                            } else {
+                                setSelectedTags(selectedBadTags + text)
+                                setFields(badFields + (text to TextFieldValue(text)))
+                            }
+                            customInput = TextFieldValue()
+                            showSaveTagBubble = false
+                        }
+                    },
+                    modifier = Modifier.size(48.dp),
                     containerColor = if (selectedTab == 0) 
                         MaterialTheme.colorScheme.primary 
                     else 
-                        MaterialTheme.colorScheme.error
-                )
-            ) {
-                Icon(
-                    Icons.Default.Add, 
-                    contentDescription = "Добавить", 
-                    tint = if (selectedTab == 0) 
+                        MaterialTheme.colorScheme.error,
+                    contentColor = if (selectedTab == 0) 
                         MaterialTheme.colorScheme.onPrimary 
                     else 
                         MaterialTheme.colorScheme.onError
-                )
+                ) {
+                    Icon(
+                        Icons.Default.Add, 
+                        contentDescription = "Добавить пункт"
+                    )
+                }
             }
         }
         
-        // Бабл "Сохранить тег"
+        // Бабл "Сохранить тег" с улучшенным дизайном
         if (showSaveTagBubble && lastInputText.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                shape = MaterialTheme.shapes.medium,
-                elevation = CardDefaults.cardElevation(2.dp),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(6.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = if (selectedTab == 0) 
                         MaterialTheme.colorScheme.primaryContainer 
@@ -285,76 +406,132 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
                         MaterialTheme.colorScheme.errorContainer
                 )
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(16.dp)
+                Column(
+                    modifier = Modifier.padding(20.dp)
                 ) {
-                    Text(
-                        "Сохранить тег \"$lastInputText\"?",
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (selectedTab == 0) 
-                            MaterialTheme.colorScheme.onPrimaryContainer 
-                        else 
-                            MaterialTheme.colorScheme.onErrorContainer
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            try {
-                                // Проверяем, что тег не существует
-                                val existingTags = if (selectedTab == 0) allGoodTags else allBadTags
-                                if (lastInputText !in existingTags) {
-                                    // Сохраняем тег через ViewModel
-                                    viewModel.addTag(lastInputText, if (selectedTab == 0) TagType.GOOD else TagType.BAD)
-                                    println("Saving tag: $lastInputText")
-                                } else {
-                                    println("Tag already exists: $lastInputText")
-                                }
-                            } catch (e: Exception) {
-                                println("Error in save tag button: ${e.message}")
-                                e.printStackTrace()
-                            }
-                            showSaveTagBubble = false
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (selectedTab == 0) 
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            if (selectedTab == 0) Icons.Default.Add else Icons.Default.Add,
+                            contentDescription = null,
+                            tint = if (selectedTab == 0) 
                                 MaterialTheme.colorScheme.primary 
                             else 
-                                MaterialTheme.colorScheme.error
+                                MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(24.dp)
                         )
-                    ) {
+                        Spacer(Modifier.width(12.dp))
                         Text(
-                            "Сохранить",
+                            "Сохранить тег?",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
                             color = if (selectedTab == 0) 
-                                MaterialTheme.colorScheme.onPrimary 
+                                MaterialTheme.colorScheme.onPrimaryContainer 
                             else 
-                                MaterialTheme.colorScheme.onError
+                                MaterialTheme.colorScheme.onErrorContainer
                         )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "\"$lastInputText\"",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (selectedTab == 0) 
+                            MaterialTheme.colorScheme.primary 
+                        else 
+                            MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(
+                            onClick = { showSaveTagBubble = false }
+                        ) {
+                            Text(
+                                "Отмена",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                try {
+                                    // Проверяем, что тег не существует
+                                    val existingTags = if (selectedTab == 0) allGoodTags else allBadTags
+                                    if (lastInputText !in existingTags) {
+                                        // Сохраняем тег через ViewModel
+                                        viewModel.addTag(lastInputText, if (selectedTab == 0) TagType.GOOD else TagType.BAD)
+                                        println("Saving tag: $lastInputText")
+                                    } else {
+                                        println("Tag already exists: $lastInputText")
+                                    }
+                                } catch (e: Exception) {
+                                    println("Error in save tag button: ${e.message}")
+                                    e.printStackTrace()
+                                }
+                                showSaveTagBubble = false
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (selectedTab == 0) 
+                                    MaterialTheme.colorScheme.primary 
+                                else 
+                                    MaterialTheme.colorScheme.error
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                "Сохранить",
+                                color = if (selectedTab == 0) 
+                                    MaterialTheme.colorScheme.onPrimary 
+                                else 
+                                    MaterialTheme.colorScheme.onError
+                            )
+                        }
                     }
                 }
             }
         }
         Spacer(Modifier.height(8.dp))
-        // Карточки выбранных good/bad пунктов с редактированием и удалением
+        // Карточки выбранных good/bad пунктов с улучшенным дизайном
         var editingKey by remember { mutableStateOf<String?>(null) }
         var editingText by remember { mutableStateOf(TextFieldValue()) }
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            selectedTags.forEach { tag ->
+        
+        if (selectedTags.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Выбранные пункты (${selectedTags.size})",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+        
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            items(selectedTags) { tag ->
                 AnimatedVisibility(visible = true, enter = fadeIn(), exit = fadeOut()) {
                     if (editingKey == tag) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium,
-                            elevation = CardDefaults.cardElevation(2.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = CardDefaults.cardElevation(4.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            )
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(12.dp)) {
+                            Column(modifier = Modifier.padding(16.dp)) {
                                 OutlinedTextField(
                                     value = editingText,
                                     onValueChange = { editingText = it },
-                                    modifier = Modifier.weight(1f),
-                                    shape = MaterialTheme.shapes.small,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp),
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedContainerColor = MaterialTheme.colorScheme.surface,
                                         unfocusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -363,78 +540,97 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
                                         else 
                                             MaterialTheme.colorScheme.error,
                                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                                    )
+                                    ),
+                                    textStyle = MaterialTheme.typography.bodyLarge
                                 )
-                                Spacer(Modifier.width(8.dp))
-                                IconButton(
-                                    onClick = {
-                                        val newText = editingText.text.trim()
-                                        if (newText.isNotBlank()) {
-                                            // Обновляем ключ в selectedTags и fields
-                                            val newTags = selectedTags.map { if (it == tag) newText else it }
-                                            setSelectedTags(newTags)
-                                            setFields(fields - tag + (newText to (fields[tag] ?: TextFieldValue(newText)).copy(text = newText)))
-                                            editingKey = null
-                                        }
-                                    },
-                                    colors = IconButtonDefaults.iconButtonColors(
-                                        containerColor = if (selectedTab == 0) 
-                                            MaterialTheme.colorScheme.primary 
-                                        else 
-                                            MaterialTheme.colorScheme.error
-                                    )
+                                Spacer(Modifier.height(12.dp))
+                                Row(
+                                    horizontalArrangement = Arrangement.End
                                 ) {
-                                    Text("OK", color = if (selectedTab == 0) 
-                                        MaterialTheme.colorScheme.onPrimary 
-                                    else 
-                                        MaterialTheme.colorScheme.onError)
-                                }
-                                IconButton(
-                                    onClick = { editingKey = null },
-                                    colors = IconButtonDefaults.iconButtonColors(
-                                        containerColor = MaterialTheme.colorScheme.error
-                                    )
-                                ) {
-                                    Text("X", color = MaterialTheme.colorScheme.onError)
+                                    TextButton(
+                                        onClick = { editingKey = null }
+                                    ) {
+                                        Text(
+                                            "Отмена",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Spacer(Modifier.width(8.dp))
+                                    Button(
+                                        onClick = {
+                                            val newText = editingText.text.trim()
+                                            if (newText.isNotBlank()) {
+                                                // Обновляем ключ в selectedTags и fields
+                                                val newTags = selectedTags.map { if (it == tag) newText else it }
+                                                setSelectedTags(newTags)
+                                                setFields(fields - tag + (newText to (fields[tag] ?: TextFieldValue(newText)).copy(text = newText)))
+                                                editingKey = null
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (selectedTab == 0) 
+                                                MaterialTheme.colorScheme.primary 
+                                            else 
+                                                MaterialTheme.colorScheme.error
+                                        ),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text(
+                                            "Сохранить",
+                                            color = if (selectedTab == 0) 
+                                                MaterialTheme.colorScheme.onPrimary 
+                                            else 
+                                                MaterialTheme.colorScheme.onError
+                                        )
+                                    }
                                 }
                             }
                         }
                     } else {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium,
+                            shape = RoundedCornerShape(12.dp),
                             elevation = CardDefaults.cardElevation(2.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            )
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically, 
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                Icon(
+                                    if (selectedTab == 0) Icons.Default.Add else Icons.Default.Add,
+                                    contentDescription = null,
+                                    tint = if (selectedTab == 0) 
+                                        MaterialTheme.colorScheme.primary 
+                                    else 
+                                        MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(Modifier.width(12.dp))
                                 Text(
                                     fields[tag]?.text ?: tag, 
                                     modifier = Modifier.weight(1f), 
                                     style = MaterialTheme.typography.bodyLarge,
-                                    color = if (selectedTab == 0) 
-                                        MaterialTheme.colorScheme.primary 
-                                    else 
-                                        MaterialTheme.colorScheme.error
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Medium
                                 )
+                                Spacer(Modifier.width(8.dp))
                                 IconButton(
                                     onClick = {
                                         editingKey = tag
                                         editingText = TextFieldValue(fields[tag]?.text ?: tag)
                                     },
                                     colors = IconButtonDefaults.iconButtonColors(
-                                        containerColor = if (selectedTab == 0) 
-                                            MaterialTheme.colorScheme.primary 
-                                        else 
-                                            MaterialTheme.colorScheme.error
+                                        containerColor = MaterialTheme.colorScheme.surface
                                     )
                                 ) {
                                     Icon(
                                         Icons.Default.Edit, 
                                         contentDescription = "Редактировать", 
-                                        tint = if (selectedTab == 0) 
-                                            MaterialTheme.colorScheme.onPrimary 
-                                        else 
-                                            MaterialTheme.colorScheme.onError
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
                                 IconButton(
@@ -443,13 +639,14 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
                                         setFields(fields - tag)
                                     },
                                     colors = IconButtonDefaults.iconButtonColors(
-                                        containerColor = MaterialTheme.colorScheme.error
+                                        containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
                                     )
                                 ) {
                                     Icon(
                                         Icons.Default.Delete, 
                                         contentDescription = "Удалить", 
-                                        tint = MaterialTheme.colorScheme.onError
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
                             }
@@ -459,38 +656,94 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
             }
         }
         Spacer(Modifier.height(8.dp))
-        // Кнопки
-        Row(
-            Modifier
+        // Кнопки с улучшенным дизайном
+        Card(
+            modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(4.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
         ) {
-            Button(
-                onClick = {
-                    // Сохраняем отчёт с накопленными good/bad пунктами
-                    viewModel.saveReport(
-                        goodItems = selectedGoodTags,
-                        badItems = selectedBadTags,
-                        onSaved = onBack
-                    )
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            Column(
+                modifier = Modifier.padding(20.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
-                Spacer(Modifier.width(4.dp))
-                Text("Сохранить", color = MaterialTheme.colorScheme.onPrimary)
-            }
-            Button(
-                onClick = { /* опубликовать */ },
-                modifier = Modifier.weight(1f),
-                enabled = false, // пока не реализовано
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
-                Spacer(Modifier.width(4.dp))
-                Text("Опубликовать", color = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    "Действия",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            // Сохраняем отчёт с накопленными good/bad пунктами
+                            viewModel.saveReport(
+                                goodItems = selectedGoodTags,
+                                badItems = selectedBadTags,
+                                onSaved = onBack
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Add, 
+                                contentDescription = null, 
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "Сохранить", 
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                    Button(
+                        onClick = { /* опубликовать */ },
+                        modifier = Modifier.weight(1f),
+                        enabled = false, // пока не реализовано
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Send, 
+                                contentDescription = null, 
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "Опубликовать", 
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
+                }
             }
         }
     }
