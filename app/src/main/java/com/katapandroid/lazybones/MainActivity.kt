@@ -5,13 +5,20 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.katapandroid.lazybones.ui.MainViewModel
@@ -82,7 +89,8 @@ fun AppNavHost(navController: NavHostController, mainViewModel: MainViewModel) {
             composable(BottomNavItem.Main.route) {
                 MainScreen(
                     mainViewModel,
-                    onOpenReportForm = { navController.navigate("reportForm") }
+                    onOpenReportForm = { navController.navigate("reportForm") },
+                    onOpenPlan = { navController.navigate(BottomNavItem.Plan.route) }
                 )
             }
             composable(BottomNavItem.Plan.route) { PlanScreen() }
@@ -104,7 +112,13 @@ fun BottomNavigationBar(navController: NavHostController, items: List<BottomNavI
             NavigationBarItem(
                 selected = currentRoute == item.route,
                 onClick = {
-                    if (currentRoute != item.route) {
+                    if (item.route == BottomNavItem.Main.route) {
+                        // Для главной вкладки всегда возвращаемся на главный экран
+                        navController.navigate(item.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    } else if (currentRoute != item.route) {
+                        // Для остальных вкладок только если не на текущей
                         navController.navigate(item.route) {
                             popUpTo(navController.graph.startDestinationId) { saveState = true }
                             launchSingleTop = true
@@ -123,31 +137,39 @@ fun BottomNavigationBar(navController: NavHostController, items: List<BottomNavI
 @Composable
 fun MainScreen(
     viewModel: MainViewModel,
-    onOpenReports: () -> Unit = {},
-    onOpenReportForm: () -> Unit = {}
+    onOpenReportForm: () -> Unit = {},
+    onOpenPlan: () -> Unit = {}
 ) {
     val goodCount = viewModel.goodCount.collectAsState().value
     val badCount = viewModel.badCount.collectAsState().value
     val reportStatus = viewModel.reportStatus.collectAsState().value
-    val timerProgress = viewModel.timerProgress.collectAsState().value
     val timerTimeText = viewModel.timerTimeText.collectAsState().value
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        contentAlignment = Alignment.Center
     ) {
-        Text("Статус отчёта: ${statusText(reportStatus)}", style = MaterialTheme.typography.titleMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
-            CounterBox(count = goodCount, label = "Good", color = MaterialTheme.colorScheme.primary)
-            CounterBox(count = badCount, label = "Bad", color = MaterialTheme.colorScheme.error)
-        }
-        LinearProgressIndicator(progress = timerProgress, modifier = Modifier.fillMaxWidth())
-        Text("До конца: $timerTimeText", style = MaterialTheme.typography.bodyLarge)
-        Button(onClick = onOpenReportForm) {
-            Text("Создать/Редактировать отчёт")
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            Text("Статус отчёта: ${statusText(reportStatus)}", style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+                CounterBox(count = goodCount, label = "Good", color = Color(0xFF4CAF50))
+                CounterBox(count = badCount, label = "Bad", color = Color(0xFFF44336))
+            }
+            GoodBadProgressBar(
+                goodCount = goodCount,
+                badCount = badCount,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text("До конца: $timerTimeText", style = MaterialTheme.typography.bodyLarge)
+            CreateButton(
+                onOpenReportForm = onOpenReportForm,
+                onOpenPlan = onOpenPlan
+            )
         }
     }
 }
@@ -157,7 +179,139 @@ fun MainScreen(
 fun CounterBox(count: Int, label: String, color: androidx.compose.ui.graphics.Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text("$count", style = MaterialTheme.typography.displayMedium, color = color)
-        Text(label, style = MaterialTheme.typography.bodyMedium)
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = color)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CreateButton(
+    onOpenReportForm: () -> Unit,
+    onOpenPlan: () -> Unit
+) {
+    var showDialog by remember { mutableStateOf(false) }
+    var errorText by remember { mutableStateOf<String?>(null) }
+
+    Button(
+        onClick = { showDialog = true },
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF4CAF50)
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text("Создать", style = MaterialTheme.typography.bodyLarge)
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            confirmButton = {
+                // Пусто, т.к. используем кастомный контент ниже
+            },
+            dismissButton = {
+                // Пусто, т.к. используем кастомный контент ниже
+            },
+            title = null,
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text("Что создаём?", style = MaterialTheme.typography.titleLarge)
+                    if (errorText != null) {
+                        Text(errorText!!, color = Color.Red, style = MaterialTheme.typography.bodyMedium)
+                    } else {
+                        Text("Выберите, что хотите создать", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                try {
+                                    showDialog = false
+                                    onOpenPlan()
+                                } catch (e: Exception) {
+                                    errorText = "Ошибка: ${e.localizedMessage ?: e.toString()}"
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Text(
+                                "План на день",
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+                        Button(
+                            onClick = {
+                                try {
+                                    showDialog = false
+                                    onOpenReportForm()
+                                } catch (e: Exception) {
+                                    errorText = "Ошибка: ${e.localizedMessage ?: e.toString()}"
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF4CAF50)
+                            )
+                        ) {
+                            Text(
+                                "Отчёт за день",
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun GoodBadProgressBar(
+    goodCount: Int,
+    badCount: Int,
+    modifier: Modifier = Modifier
+) {
+    val total = goodCount + badCount
+    val goodRatio = if (total == 0) 0.5f else goodCount.toFloat() / total
+    val badRatio = if (total == 0) 0.5f else badCount.toFloat() / total
+    
+    Box(
+        modifier = modifier
+            .height(8.dp)
+            .clip(RoundedCornerShape(4.dp))
+            .background(Color.LightGray),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Зелёная часть (good)
+            Box(
+                modifier = Modifier
+                    .weight(goodRatio)
+                    .fillMaxHeight()
+                    .background(Color(0xFF4CAF50))
+            )
+            // Красная часть (bad)
+            Box(
+                modifier = Modifier
+                    .weight(badRatio)
+                    .fillMaxHeight()
+                    .background(Color(0xFFF44336))
+            )
+        }
     }
 }
 
@@ -175,14 +329,12 @@ fun MainScreenPreview() {
         val goodCount = 7
         val badCount = 2
         val reportStatus = ReportStatus.IN_PROGRESS
-        val timerProgress = 0.65f
         val timerTimeText = "01:23:45"
         // Вынесем UI-логику в отдельную функцию для превью
         MainScreenMock(
             goodCount = goodCount,
             badCount = badCount,
             reportStatus = reportStatus,
-            timerProgress = timerProgress,
             timerTimeText = timerTimeText
         )
     }
@@ -194,26 +346,36 @@ fun MainScreenMock(
     goodCount: Int,
     badCount: Int,
     reportStatus: ReportStatus,
-    timerProgress: Float,
-    timerTimeText: String
+    timerTimeText: String,
+    onOpenReportForm: () -> Unit = {},
+    onOpenPlan: () -> Unit = {}
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        contentAlignment = Alignment.Center
     ) {
-        TopAppBar(title = { Text("LazyBones") })
-        Text("Статус отчёта: ${statusText(reportStatus)}", style = MaterialTheme.typography.titleMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
-            CounterBox(count = goodCount, label = "Good", color = MaterialTheme.colorScheme.primary)
-            CounterBox(count = badCount, label = "Bad", color = MaterialTheme.colorScheme.error)
-        }
-        LinearProgressIndicator(progress = timerProgress, modifier = Modifier.fillMaxWidth())
-        Text("До конца: $timerTimeText", style = MaterialTheme.typography.bodyLarge)
-        Button(onClick = { }) {
-            Text("Создать/Редактировать отчёт")
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            TopAppBar(title = { Text("LazyBones") })
+            Text("Статус отчёта: ${statusText(reportStatus)}", style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+                CounterBox(count = goodCount, label = "Good", color = Color(0xFF4CAF50))
+                CounterBox(count = badCount, label = "Bad", color = Color(0xFFF44336))
+            }
+            GoodBadProgressBar(
+                goodCount = goodCount,
+                badCount = badCount,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text("До конца: $timerTimeText", style = MaterialTheme.typography.bodyLarge)
+            CreateButton(
+                onOpenReportForm = onOpenReportForm,
+                onOpenPlan = onOpenPlan
+            )
         }
     }
 }
