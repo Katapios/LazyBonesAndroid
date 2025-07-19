@@ -25,6 +25,7 @@ import java.util.*
 import org.koin.androidx.compose.koinViewModel
 import com.katapandroid.lazybones.data.Post
 import com.katapandroid.lazybones.ui.ReportsViewModel
+import org.koin.androidx.compose.getViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Close
 
@@ -181,10 +182,10 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                     val post = customPosts[idx]
                     val report = ReportUi(
                         date = post.date,
-                        good = if (post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()) post.goodItems else emptyList(),
-                        bad = if (post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()) post.badItems else post.checklist,
+                        good = post.goodItems, // Для кастомных отчетов это будет пусто, пока не оценены
+                        bad = post.badItems,   // Для кастомных отчетов это будет пусто, пока не оценены
                         isCustom = true,
-                        isSaved = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()
+                        isSaved = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty() // Оценен ли отчет
                     )
                     ReportCard(
                         report = report,
@@ -337,6 +338,18 @@ private fun ReportCard(
     onDelete: () -> Unit,
     onSave: () -> Unit
 ) {
+    // Получаем оригинальный пост для доступа к checklist
+    val posts by (koinViewModel<ReportsViewModel>().posts.collectAsState())
+    val customPosts by (koinViewModel<ReportsViewModel>().customPosts.collectAsState())
+    
+    // Находим соответствующий пост
+    val originalPost = if (report.isCustom) {
+        customPosts.find { it.date == report.date }
+    } else {
+        posts.find { it.date == report.date }
+    }
+    
+    val checklist = originalPost?.checklist ?: emptyList()
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -377,60 +390,52 @@ private fun ReportCard(
                 }
             }
             Spacer(Modifier.height(8.dp))
-            if (report.good.isNotEmpty()) {
-                if (report.isCustom && report.isSaved) {
-                    // Для оценённых кастомных отчётов показываем с заголовком "Я молодец:" и иконками
-                    Text("Я молодец:", color = Color(0xFF388E3C), fontWeight = FontWeight.Bold)
-                    report.good.forEachIndexed { idx, item ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
-                            Spacer(Modifier.width(4.dp))
-                            Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
-                        }
-                    }
-                } else if (report.isCustom && !report.isSaved) {
-                    // Для неоценённых кастомных отчётов показываем просто список без заголовка и иконок
-                    report.good.forEachIndexed { idx, item ->
+            if (report.isCustom && !report.isSaved) {
+                // Для неоценённых кастомных отчётов показываем checklist
+                if (checklist.isNotEmpty()) {
+                    Text("План на день:", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    checklist.forEachIndexed { idx, item ->
                         Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
                     }
-                } else {
-                    // Для обычных отчётов показываем с заголовком "Я молодец:" и иконками
-                    Text("Я молодец:", color = Color(0xFF388E3C), fontWeight = FontWeight.Bold)
-                    report.good.forEachIndexed { idx, item ->
+                }
+            } else if (report.isCustom && report.isSaved) {
+                // Для оценённых кастомных отчётов показываем и план, и результаты
+                if (checklist.isNotEmpty()) {
+                    Text("План на день:", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    checklist.forEachIndexed { idx, item ->
+                        val isCompleted = report.good.contains(item)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
                             Spacer(Modifier.width(4.dp))
-                            Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
+                            Icon(
+                                if (isCompleted) Icons.Default.Check else Icons.Default.Close,
+                                contentDescription = if (isCompleted) "Выполнено" else "Не выполнено",
+                                tint = if (isCompleted) Color(0xFF4CAF50) else Color(0xFFD32F2F),
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
+                    }
+                }
+            } else if (report.good.isNotEmpty()) {
+                // Для обычных локальных отчётов показываем good items
+                Text("Я молодец:", color = Color(0xFF388E3C), fontWeight = FontWeight.Bold)
+                report.good.forEachIndexed { idx, item ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.width(4.dp))
+                        Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
                     }
                 }
             }
             if (report.bad.isNotEmpty()) {
                 Spacer(Modifier.height(4.dp))
-                if (report.isCustom && report.isSaved) {
-                    // Для оценённых кастомных отчётов показываем с заголовком "Я не молодец:" и иконками
-                    Text("Я не молодец:", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold)
-                    report.bad.forEachIndexed { idx, item ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
-                            Spacer(Modifier.width(4.dp))
-                            Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(16.dp))
-                        }
-                    }
-                } else if (report.isCustom && !report.isSaved) {
-                    // Для неоценённых кастомных отчётов показываем просто список без заголовка и иконок
-                    report.bad.forEachIndexed { idx, item ->
+                // Для оценённых кастомных отчётов и обычных отчётов показываем bad items
+                Text("Я не молодец:", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold)
+                report.bad.forEachIndexed { idx, item ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
-                    }
-                } else {
-                    // Для обычных отчётов показываем с заголовком "Я не молодец:" и иконками
-                    Text("Я не молодец:", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold)
-                    report.bad.forEachIndexed { idx, item ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
-                            Spacer(Modifier.width(4.dp))
-                            Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(16.dp))
-                        }
+                        Spacer(Modifier.width(4.dp))
+                        Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(16.dp))
                     }
                 }
             }

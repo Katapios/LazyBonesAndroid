@@ -21,7 +21,11 @@ class ReportsViewModel(
 
     init {
         postRepository.getAllPosts().onEach { posts ->
-            _posts.value = posts.filter { it.goodItems.isNotEmpty() || it.badItems.isNotEmpty() }
+            // Локальные отчеты - это отчеты с goodItems или badItems, созданные через ReportFormScreen (без checklist)
+            _posts.value = posts.filter { 
+                (it.goodItems.isNotEmpty() || it.badItems.isNotEmpty()) && it.checklist.isEmpty() 
+            }
+            // Кастомные отчеты - это отчеты с checklist (созданные через PlanScreen), независимо от наличия goodItems/badItems
             _customPosts.value = posts.filter { it.checklist.isNotEmpty() }
         }.launchIn(viewModelScope)
     }
