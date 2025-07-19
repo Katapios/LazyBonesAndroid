@@ -11,7 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
@@ -75,23 +75,45 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
         Row(
             Modifier
                 .fillMaxWidth()
-                .background(Color(0xFFF5F5F5), RoundedCornerShape(16.dp))
-                .padding(4.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            TabButton(
-                selected = selectedTab == 0,
-                text = "👍 молодец (${selectedGoodTags.size})",
+            Button(
                 onClick = { selectedTab = 0 },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (selectedTab == 0) 
+                        MaterialTheme.colorScheme.primary 
+                    else 
+                        MaterialTheme.colorScheme.surface
+                ),
                 modifier = Modifier.weight(1f)
-            )
-            Spacer(Modifier.width(8.dp))
-            TabButton(
-                selected = selectedTab == 1,
-                text = "👎 лаботряс (${selectedBadTags.size})",
+            ) {
+                Text(
+                    "👍 Молодец (${selectedGoodTags.size})",
+                    color = if (selectedTab == 0) 
+                        MaterialTheme.colorScheme.onPrimary 
+                    else 
+                        MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Button(
                 onClick = { selectedTab = 1 },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (selectedTab == 1) 
+                        MaterialTheme.colorScheme.error 
+                    else 
+                        MaterialTheme.colorScheme.surface
+                ),
                 modifier = Modifier.weight(1f)
-            )
+            ) {
+                Text(
+                    "👎 Лаботряс (${selectedBadTags.size})",
+                    color = if (selectedTab == 1) 
+                        MaterialTheme.colorScheme.onError 
+                    else 
+                        MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
         Spacer(Modifier.height(12.dp))
         // WheelPicker тегов
@@ -99,8 +121,7 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
-                    .padding(8.dp),
+                    .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
@@ -137,9 +158,21 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
                         }
                     },
                     modifier = Modifier.size(40.dp),
-                    colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = if (selectedTab == 0) 
+                            MaterialTheme.colorScheme.primary 
+                        else 
+                            MaterialTheme.colorScheme.error
+                    )
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Добавить", tint = Color.White)
+                    Icon(
+                        Icons.Default.Add, 
+                        contentDescription = "Добавить", 
+                        tint = if (selectedTab == 0) 
+                            MaterialTheme.colorScheme.onPrimary 
+                        else 
+                            MaterialTheme.colorScheme.onError
+                    )
                 }
             }
         }
@@ -167,13 +200,26 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
         }
         // Поле для добавления кастомного пункта (good/bad)
         var customInput by remember { mutableStateOf(TextFieldValue()) }
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        ) {
             OutlinedTextField(
                 value = customInput,
                 onValueChange = { customInput = it },
                 placeholder = { Text("Добавить пункт") },
                 modifier = Modifier.weight(1f),
-                singleLine = true
+                singleLine = true,
+                shape = MaterialTheme.shapes.medium,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedBorderColor = if (selectedTab == 0) 
+                        MaterialTheme.colorScheme.primary 
+                    else 
+                        MaterialTheme.colorScheme.error,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                )
             )
             Spacer(Modifier.width(8.dp))
             IconButton(
@@ -191,9 +237,21 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
                     }
                 },
                 modifier = Modifier.size(48.dp),
-                colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFF2196F3))
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = if (selectedTab == 0) 
+                        MaterialTheme.colorScheme.primary 
+                    else 
+                        MaterialTheme.colorScheme.error
+                )
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Добавить", tint = Color.White)
+                Icon(
+                    Icons.Default.Add, 
+                    contentDescription = "Добавить", 
+                    tint = if (selectedTab == 0) 
+                        MaterialTheme.colorScheme.onPrimary 
+                    else 
+                        MaterialTheme.colorScheme.onError
+                )
             }
         }
         Spacer(Modifier.height(8.dp))
@@ -207,31 +265,56 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = MaterialTheme.shapes.medium,
-                            elevation = CardDefaults.cardElevation(6.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                            elevation = CardDefaults.cardElevation(2.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(12.dp)) {
                                 OutlinedTextField(
                                     value = editingText,
                                     onValueChange = { editingText = it },
                                     modifier = Modifier.weight(1f),
-                                    shape = MaterialTheme.shapes.small
+                                    shape = MaterialTheme.shapes.small,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                        focusedBorderColor = if (selectedTab == 0) 
+                                            MaterialTheme.colorScheme.primary 
+                                        else 
+                                            MaterialTheme.colorScheme.error,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                    )
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                IconButton(onClick = {
-                                    val newText = editingText.text.trim()
-                                    if (newText.isNotBlank()) {
-                                        // Обновляем ключ в selectedTags и fields
-                                        val newTags = selectedTags.map { if (it == tag) newText else it }
-                                        setSelectedTags(newTags)
-                                        setFields(fields - tag + (newText to (fields[tag] ?: TextFieldValue(newText)).copy(text = newText)))
-                                        editingKey = null
-                                    }
-                                }, colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFF2196F3))) {
-                                    Text("OK", color = Color.White)
+                                IconButton(
+                                    onClick = {
+                                        val newText = editingText.text.trim()
+                                        if (newText.isNotBlank()) {
+                                            // Обновляем ключ в selectedTags и fields
+                                            val newTags = selectedTags.map { if (it == tag) newText else it }
+                                            setSelectedTags(newTags)
+                                            setFields(fields - tag + (newText to (fields[tag] ?: TextFieldValue(newText)).copy(text = newText)))
+                                            editingKey = null
+                                        }
+                                    },
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        containerColor = if (selectedTab == 0) 
+                                            MaterialTheme.colorScheme.primary 
+                                        else 
+                                            MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    Text("OK", color = if (selectedTab == 0) 
+                                        MaterialTheme.colorScheme.onPrimary 
+                                    else 
+                                        MaterialTheme.colorScheme.onError)
                                 }
-                                IconButton(onClick = { editingKey = null }) {
-                                    Text("X", color = MaterialTheme.colorScheme.error)
+                                IconButton(
+                                    onClick = { editingKey = null },
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    Text("X", color = MaterialTheme.colorScheme.onError)
                                 }
                             }
                         }
@@ -239,22 +322,54 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = MaterialTheme.shapes.medium,
-                            elevation = CardDefaults.cardElevation(4.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                            elevation = CardDefaults.cardElevation(2.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(12.dp)) {
-                                Text(fields[tag]?.text ?: tag, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                                IconButton(onClick = {
-                                    editingKey = tag
-                                    editingText = TextFieldValue(fields[tag]?.text ?: tag)
-                                }, colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFF2196F3))) {
-                                    Icon(Icons.Default.Edit, contentDescription = "Редактировать", tint = Color.White)
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    fields[tag]?.text ?: tag, 
+                                    modifier = Modifier.weight(1f), 
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (selectedTab == 0) 
+                                        MaterialTheme.colorScheme.primary 
+                                    else 
+                                        MaterialTheme.colorScheme.error
+                                )
+                                IconButton(
+                                    onClick = {
+                                        editingKey = tag
+                                        editingText = TextFieldValue(fields[tag]?.text ?: tag)
+                                    },
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        containerColor = if (selectedTab == 0) 
+                                            MaterialTheme.colorScheme.primary 
+                                        else 
+                                            MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.Edit, 
+                                        contentDescription = "Редактировать", 
+                                        tint = if (selectedTab == 0) 
+                                            MaterialTheme.colorScheme.onPrimary 
+                                        else 
+                                            MaterialTheme.colorScheme.onError
+                                    )
                                 }
-                                IconButton(onClick = {
-                                    setSelectedTags(selectedTags - tag)
-                                    setFields(fields - tag)
-                                }, colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Удалить", tint = MaterialTheme.colorScheme.error)
+                                IconButton(
+                                    onClick = {
+                                        setSelectedTags(selectedTags - tag)
+                                        setFields(fields - tag)
+                                    },
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete, 
+                                        contentDescription = "Удалить", 
+                                        tint = MaterialTheme.colorScheme.onError
+                                    )
                                 }
                             }
                         }
@@ -267,8 +382,8 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(vertical = 24.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
+                .padding(24.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Button(
                 onClick = {
@@ -280,57 +395,56 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = getViewModel(), onBack: ()
                     )
                 },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
-                shape = RoundedCornerShape(12.dp)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Icon(Icons.Default.Add, contentDescription = null)
+                Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
                 Spacer(Modifier.width(4.dp))
-                Text("Сохранить")
+                Text("Сохранить", color = MaterialTheme.colorScheme.onPrimary)
             }
-            Spacer(Modifier.width(16.dp))
             Button(
                 onClick = { /* опубликовать */ },
                 modifier = Modifier.weight(1f),
                 enabled = false, // пока не реализовано
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB2DFDB)),
-                shape = RoundedCornerShape(12.dp)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                Icon(Icons.Default.Send, contentDescription = null)
+                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.width(4.dp))
-                Text("Опубликовать")
+                Text("Опубликовать", color = MaterialTheme.colorScheme.onSurface)
             }
         }
     }
 }
 
-@Composable
-private fun TabButton(selected: Boolean, text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Button(
-        onClick = onClick,
-        colors = if (selected) ButtonDefaults.buttonColors(containerColor = Color(0xFFB2FFB2))
-        else ButtonDefaults.buttonColors(containerColor = Color(0xFFF5F5F5)),
-        shape = RoundedCornerShape(12.dp),
-        modifier = modifier
-    ) {
-        Text(text, color = if (selected) Color(0xFF388E3C) else Color.Black, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
-    }
-}
+
 
 @Composable
-private fun ChipTag(text: String, selected: Boolean, onRemove: () -> Unit) {
-    Box(
-        Modifier
-            .background(
-                color = if (selected) Color(0xFFB2FFB2) else Color(0xFFE0E0E0),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .border(1.dp, if (selected) Color(0xFF388E3C) else Color.Gray, RoundedCornerShape(16.dp))
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+private fun ChipTag(text: String, selected: Boolean = true, onRemove: () -> Unit) {
+    Card(
+        modifier = Modifier.padding(vertical = 4.dp),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text, color = if (selected) Color(0xFF388E3C) else Color.Black)
-            IconButton(onClick = onRemove, modifier = Modifier.size(20.dp)) {
-                Icon(Icons.Default.Close, contentDescription = "Удалить", tint = Color.Gray, modifier = Modifier.size(16.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+        ) {
+            Text(
+                text, 
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            IconButton(
+                onClick = onRemove, 
+                modifier = Modifier.size(20.dp),
+                colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
+                Icon(
+                    Icons.Default.Close, 
+                    contentDescription = "Удалить", 
+                    tint = MaterialTheme.colorScheme.onError, 
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
     }
