@@ -97,9 +97,9 @@ private fun PlanTab(
                     }
                 },
                 modifier = Modifier.size(48.dp),
-                colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Добавить", tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Default.Add, contentDescription = "Добавить", tint = MaterialTheme.colorScheme.onPrimary)
             }
         }
         Spacer(Modifier.height(16.dp))
@@ -110,27 +110,39 @@ private fun PlanTab(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = MaterialTheme.shapes.medium,
-                            elevation = CardDefaults.cardElevation(6.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                            elevation = CardDefaults.cardElevation(2.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(12.dp)) {
                                 OutlinedTextField(
                                     value = editingText,
                                     onValueChange = { editingText = it },
                                     modifier = Modifier.weight(1f),
-                                    shape = MaterialTheme.shapes.small
+                                    shape = MaterialTheme.shapes.small,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                    )
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                IconButton(onClick = {
-                                    if (editingText.text.isNotBlank()) {
-                                        viewModel.updatePlanItem(item.copy(text = editingText.text))
-                                        editingId = null
-                                    }
-                                }, colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-                                    Text("OK", color = MaterialTheme.colorScheme.primary)
+                                IconButton(
+                                    onClick = {
+                                        if (editingText.text.isNotBlank()) {
+                                            viewModel.updatePlanItem(item.copy(text = editingText.text))
+                                            editingId = null
+                                        }
+                                    },
+                                    colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                ) {
+                                    Text("OK", color = MaterialTheme.colorScheme.onPrimary)
                                 }
-                                IconButton(onClick = { editingId = null }) {
-                                    Text("X", color = MaterialTheme.colorScheme.error)
+                                IconButton(
+                                    onClick = { editingId = null },
+                                    colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.error)
+                                ) {
+                                    Text("X", color = MaterialTheme.colorScheme.onError)
                                 }
                             }
                         }
@@ -138,19 +150,25 @@ private fun PlanTab(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = MaterialTheme.shapes.medium,
-                            elevation = CardDefaults.cardElevation(4.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                            elevation = CardDefaults.cardElevation(2.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(16.dp)) {
                                 Text(item.text, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                                IconButton(onClick = {
-                                    editingId = item.id
-                                    editingText = TextFieldValue(item.text)
-                                }, colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-                                    Icon(Icons.Default.Edit, contentDescription = "Редактировать", tint = MaterialTheme.colorScheme.primary)
+                                IconButton(
+                                    onClick = {
+                                        editingId = item.id
+                                        editingText = TextFieldValue(item.text)
+                                    },
+                                    colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                ) {
+                                    Icon(Icons.Default.Edit, contentDescription = "Редактировать", tint = MaterialTheme.colorScheme.onPrimary)
                                 }
-                                IconButton(onClick = { showDeleteDialog = true to item }, colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Удалить", tint = MaterialTheme.colorScheme.error)
+                                IconButton(
+                                    onClick = { showDeleteDialog = true to item },
+                                    colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.error)
+                                ) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Удалить", tint = MaterialTheme.colorScheme.onError)
                                 }
                             }
                         }
@@ -204,22 +222,70 @@ private fun TagsTab(viewModel: PlanViewModel) {
     var editingText by remember { mutableStateOf(TextFieldValue()) }
     var showDeleteDialog by remember { mutableStateOf<Pair<Boolean, Tag?>>(false to null) }
 
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        TabRow(selectedTabIndex = if (selectedTagTab == TagType.GOOD) 0 else 1, containerColor = MaterialTheme.colorScheme.surface) {
-            Tab(selected = selectedTagTab == TagType.GOOD, onClick = { selectedTagTab = TagType.GOOD }, text = { Text("Хорошие", style = MaterialTheme.typography.titleMedium) })
-            Tab(selected = selectedTagTab == TagType.BAD, onClick = { selectedTagTab = TagType.BAD }, text = { Text("Плохие", style = MaterialTheme.typography.titleMedium) })
+    Column(Modifier.fillMaxSize()) {
+        // Заголовок с переключателем типов тегов
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(
+                onClick = { selectedTagTab = TagType.GOOD },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (selectedTagTab == TagType.GOOD) 
+                        MaterialTheme.colorScheme.primary 
+                    else 
+                        MaterialTheme.colorScheme.surface
+                ),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    "Хорошие теги",
+                    color = if (selectedTagTab == TagType.GOOD) 
+                        MaterialTheme.colorScheme.onPrimary 
+                    else 
+                        MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Button(
+                onClick = { selectedTagTab = TagType.BAD },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (selectedTagTab == TagType.BAD) 
+                        MaterialTheme.colorScheme.error 
+                    else 
+                        MaterialTheme.colorScheme.surface
+                ),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    "Плохие теги",
+                    color = if (selectedTagTab == TagType.BAD) 
+                        MaterialTheme.colorScheme.onError 
+                    else 
+                        MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
+
+        // Поле ввода для добавления тега
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        ) {
             OutlinedTextField(
                 value = input,
                 onValueChange = { input = it },
-                placeholder = { Text("Добавить тег") },
+                placeholder = { Text("Добавить ${if (selectedTagTab == TagType.GOOD) "хороший" else "плохой"} тег") },
                 modifier = Modifier.weight(1f),
                 shape = MaterialTheme.shapes.medium,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surface,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    focusedBorderColor = if (selectedTagTab == TagType.GOOD) 
+                        MaterialTheme.colorScheme.primary 
+                    else 
+                        MaterialTheme.colorScheme.error,
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline
                 )
             )
@@ -232,41 +298,82 @@ private fun TagsTab(viewModel: PlanViewModel) {
                     }
                 },
                 modifier = Modifier.size(48.dp),
-                colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = if (selectedTagTab == TagType.GOOD) 
+                        MaterialTheme.colorScheme.primary 
+                    else 
+                        MaterialTheme.colorScheme.error
+                )
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Добавить тег", tint = MaterialTheme.colorScheme.primary)
+                Icon(
+                    Icons.Default.Add, 
+                    contentDescription = "Добавить тег", 
+                    tint = if (selectedTagTab == TagType.GOOD) 
+                        MaterialTheme.colorScheme.onPrimary 
+                    else 
+                        MaterialTheme.colorScheme.onError
+                )
             }
         }
+
         Spacer(Modifier.height(16.dp))
+
+        // Список тегов
         val tags = if (selectedTagTab == TagType.GOOD) goodTags else badTags
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             items(tags, key = { it.id }) { tag ->
                 AnimatedVisibility(visible = true, enter = fadeIn(), exit = fadeOut()) {
                     if (editingId == tag.id) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = MaterialTheme.shapes.medium,
-                            elevation = CardDefaults.cardElevation(6.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                            elevation = CardDefaults.cardElevation(2.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically, 
+                                modifier = Modifier.padding(12.dp)
+                            ) {
                                 OutlinedTextField(
                                     value = editingText,
                                     onValueChange = { editingText = it },
                                     modifier = Modifier.weight(1f),
-                                    shape = MaterialTheme.shapes.small
+                                    shape = MaterialTheme.shapes.small,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                        focusedBorderColor = if (selectedTagTab == TagType.GOOD) 
+                                            MaterialTheme.colorScheme.primary 
+                                        else 
+                                            MaterialTheme.colorScheme.error,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                    )
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                IconButton(onClick = {
-                                    if (editingText.text.isNotBlank()) {
-                                        viewModel.updateTag(tag.copy(text = editingText.text))
-                                        editingId = null
-                                    }
-                                }, colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-                                    Text("OK", color = MaterialTheme.colorScheme.primary)
+                                IconButton(
+                                    onClick = {
+                                        if (editingText.text.isNotBlank()) {
+                                            viewModel.updateTag(tag.copy(text = editingText.text))
+                                            editingId = null
+                                        }
+                                    },
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary
+                                    )
+                                ) {
+                                    Text("OK", color = MaterialTheme.colorScheme.onPrimary)
                                 }
-                                IconButton(onClick = { editingId = null }) {
-                                    Text("X", color = MaterialTheme.colorScheme.error)
+                                IconButton(
+                                    onClick = { editingId = null },
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    Text("X", color = MaterialTheme.colorScheme.onError)
                                 }
                             }
                         }
@@ -274,19 +381,48 @@ private fun TagsTab(viewModel: PlanViewModel) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = MaterialTheme.shapes.medium,
-                            elevation = CardDefaults.cardElevation(4.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                            elevation = CardDefaults.cardElevation(2.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(12.dp)) {
-                                Text(tag.text, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                                IconButton(onClick = {
-                                    editingId = tag.id
-                                    editingText = TextFieldValue(tag.text)
-                                }, colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-                                    Icon(Icons.Default.Edit, contentDescription = "Редактировать тег", tint = MaterialTheme.colorScheme.primary)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically, 
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                Text(
+                                    tag.text, 
+                                    modifier = Modifier.weight(1f), 
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (selectedTagTab == TagType.GOOD) 
+                                        MaterialTheme.colorScheme.primary 
+                                    else 
+                                        MaterialTheme.colorScheme.error
+                                )
+                                IconButton(
+                                    onClick = {
+                                        editingId = tag.id
+                                        editingText = TextFieldValue(tag.text)
+                                    },
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.Edit, 
+                                        contentDescription = "Редактировать тег", 
+                                        tint = MaterialTheme.colorScheme.onPrimary
+                                    )
                                 }
-                                IconButton(onClick = { showDeleteDialog = true to tag }, colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Удалить тег", tint = MaterialTheme.colorScheme.error)
+                                IconButton(
+                                    onClick = { showDeleteDialog = true to tag },
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete, 
+                                        contentDescription = "Удалить тег", 
+                                        tint = MaterialTheme.colorScheme.onError
+                                    )
                                 }
                             }
                         }
@@ -295,18 +431,27 @@ private fun TagsTab(viewModel: PlanViewModel) {
             }
         }
     }
+
     if (showDeleteDialog.first) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false to null },
             title = { Text("Удалить тег?", style = MaterialTheme.typography.titleMedium) },
             confirmButton = {
-                TextButton(onClick = {
-                    showDeleteDialog.second?.let { viewModel.deleteTag(it) }
-                    showDeleteDialog = false to null
-                }) { Text("Удалить", color = MaterialTheme.colorScheme.error) }
+                TextButton(
+                    onClick = {
+                        showDeleteDialog.second?.let { viewModel.deleteTag(it) }
+                        showDeleteDialog = false to null
+                    }
+                ) { 
+                    Text("Удалить", color = MaterialTheme.colorScheme.error) 
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false to null }) { Text("Отмена") }
+                TextButton(
+                    onClick = { showDeleteDialog = false to null }
+                ) { 
+                    Text("Отмена") 
+                }
             }
         )
     }
