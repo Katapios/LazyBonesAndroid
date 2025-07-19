@@ -15,7 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
@@ -730,7 +730,7 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Icon(
-                                Icons.AutoMirrored.Filled.Send, 
+                                Icons.Default.Send, 
                                 contentDescription = null, 
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(20.dp)

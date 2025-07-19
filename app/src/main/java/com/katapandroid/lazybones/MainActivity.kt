@@ -31,7 +31,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.katapandroid.lazybones.ui.ReportsScreen
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.ArrowBack
 import org.koin.androidx.compose.getViewModel
 import org.koin.androidx.compose.koinViewModel
@@ -51,7 +51,7 @@ import com.katapandroid.lazybones.ui.ReportFormScreen
 sealed class BottomNavItem(val route: String, val label: String, val icon: ImageVector) {
     object Main : BottomNavItem("main", "Главная", Icons.Default.Home)
     object Plan : BottomNavItem("plan", "Планирование", Icons.Default.Edit)
-    object Reports : BottomNavItem("reports", "Отчёты", Icons.AutoMirrored.Filled.List)
+    object Reports : BottomNavItem("reports", "Отчёты", Icons.Filled.List)
     object Settings : BottomNavItem("settings", "Настройки", Icons.Default.Settings)
 }
 
