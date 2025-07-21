@@ -1,14 +1,23 @@
 package com.katapandroid.lazybones
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.*
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -17,119 +26,204 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.katapandroid.lazybones.ui.MainViewModel
-import com.katapandroid.lazybones.ui.ReportStatus
-import com.katapandroid.lazybones.ui.theme.LazyBonesTheme
-import org.koin.androidx.viewmodel.ext.android.viewModel
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.katapandroid.lazybones.ui.ReportsScreen
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.ArrowBack
-import org.koin.androidx.compose.getViewModel
-import org.koin.androidx.compose.koinViewModel
-import androidx.compose.runtime.mutableStateOf
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Home
-import com.katapandroid.lazybones.ui.SettingsScreen
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.runtime.getValue
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.katapandroid.lazybones.ui.MainViewModel
 import com.katapandroid.lazybones.ui.PlanScreen
 import com.katapandroid.lazybones.ui.ReportFormScreen
+import com.katapandroid.lazybones.ui.ReportStatus
+import com.katapandroid.lazybones.ui.ReportsScreen
+import com.katapandroid.lazybones.ui.SettingsScreen
+import com.katapandroid.lazybones.ui.theme.LazyBonesTheme
+import org.koin.androidx.compose.getViewModel
+import org.koin.androidx.compose.koinViewModel
+import org.koin.androidx.viewmodel.ext.android.viewModel
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.InteractionSource
 
-sealed class BottomNavItem(val route: String, val label: String, val icon: ImageVector) {
-    object Main : BottomNavItem("main", "Главная", Icons.Default.Home)
-    object Plan : BottomNavItem("plan", "Планирование", Icons.Default.Edit)
+sealed class BottomNavItem(val route: String, val label: String, val icon: ImageVector?, val drawableRes: Int? = null) {
+    object Main : BottomNavItem("main", "Главная", null) // null, т.к. кастомная буква L
+    object Plan : BottomNavItem("plan", "Планирование", Icons.Filled.CalendarToday)
     object Reports : BottomNavItem("reports", "Отчёты", Icons.Filled.List)
-    object Settings : BottomNavItem("settings", "Настройки", Icons.Default.Settings)
+    object Settings : BottomNavItem("settings", "Настройки", Icons.Filled.Settings)
 }
 
 class MainActivity : ComponentActivity() {
-    private val mainViewModel: MainViewModel by viewModel()
+    private val viewModel: MainViewModel by viewModel()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             LazyBonesTheme {
-                val navController = rememberNavController()
-                AppNavHost(navController, mainViewModel)
-            }
-        }
-    }
-}
-
-@Composable
-fun AppNavHost(navController: NavHostController, mainViewModel: MainViewModel) {
-    val items = listOf(
-        BottomNavItem.Main,
-        BottomNavItem.Plan,
-        BottomNavItem.Reports,
-        BottomNavItem.Settings
-    )
-    Scaffold(
-        bottomBar = {
-            BottomNavigationBar(navController, items)
-        }
-    ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = BottomNavItem.Main.route,
-            modifier = Modifier.padding(padding)
-        ) {
-            composable(BottomNavItem.Main.route) {
-                MainScreen(
-                    mainViewModel,
-                    onOpenReportForm = { navController.navigate("reportForm") },
-                    onOpenPlan = { navController.navigate(BottomNavItem.Plan.route) }
-                )
-            }
-            composable(BottomNavItem.Plan.route) { PlanScreen() }
-            composable(BottomNavItem.Reports.route) { ReportsScreen() }
-            composable(BottomNavItem.Settings.route) { SettingsScreen() }
-            composable("reportForm") {
-                ReportFormScreen(onBack = { navController.popBackStack() })
-            }
-        }
-    }
-}
-
-@Composable
-fun BottomNavigationBar(navController: NavHostController, items: List<BottomNavItem>) {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-    NavigationBar {
-        items.forEach { item ->
-            NavigationBarItem(
-                selected = currentRoute == item.route,
-                onClick = {
-                    if (item.route == BottomNavItem.Main.route) {
-                        // Для главной вкладки всегда возвращаемся на главный экран
-                        navController.navigate(item.route) {
-                            popUpTo(0) { inclusive = true }
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    val navController = rememberNavController()
+                    NavHost(navController = navController, startDestination = "main") {
+                        composable("main") {
+                            MainScreen(
+                                viewModel = viewModel,
+                                onOpenReportForm = { navController.navigate("report_form") },
+                                onOpenPlan = { navController.navigate("plan") }
+                            )
                         }
-                    } else if (currentRoute != item.route) {
-                        // Для остальных вкладок только если не на текущей
-                        navController.navigate(item.route) {
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                        composable("plan") {
+                            PlanScreen(
+                                viewModel = getViewModel()
+                            )
+                        }
+                        composable("reports") {
+                            ReportsScreen(
+                                viewModel = getViewModel()
+                            )
+                        }
+                        composable("settings") {
+                            SettingsScreen(
+                                viewModel = getViewModel()
+                            )
+                        }
+                        composable("report_form") {
+                            ReportFormScreen(
+                                viewModel = getViewModel()
+                            )
                         }
                     }
-                },
-                icon = { Icon(item.icon, contentDescription = item.label) },
-                label = { Text(item.label) }
-            )
+                    CustomBottomNavigation(
+                        navController = navController,
+                        items = listOf(
+                            BottomNavItem.Main,
+                            BottomNavItem.Plan,
+                            BottomNavItem.Reports,
+                            BottomNavItem.Settings
+                        ),
+                        onItemClick = { item ->
+                            navController.navigate(item.route) {
+                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CustomBottomNavigation(
+    navController: NavHostController,
+    items: List<BottomNavItem>,
+    onItemClick: (BottomNavItem) -> Unit
+) {
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    Log.d("LazyBonesTab", "currentRoute = $currentRoute")
+    
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val tabCount = items.size
+    val selectedIndex = items.indexOfFirst { it.route == currentRoute }.takeIf { it != -1 } ?: 0
+    val tabWidth = (screenWidth - 32.dp) / tabCount
+    val bubbleCenter = tabWidth * selectedIndex + tabWidth / 2 + 16.dp
+    val animatedOffset by animateDpAsState(
+        targetValue = bubbleCenter,
+        animationSpec = spring(
+            dampingRatio = 0.7f,
+            stiffness = 200f
+        ),
+        label = "bubble_offset"
+    )
+    val indicatorWidth = 80.dp
+    val indicatorHeight = 60.dp
+    val bubbleCorner = 20.dp
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        // Большой анимированный пузырь под всеми табами
+        Box(
+            Modifier
+                .offset(x = animatedOffset - indicatorWidth / 2, y = (-20).dp)
+                .size(indicatorWidth, indicatorHeight)
+                .align(Alignment.BottomStart)
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                            Color.White.copy(alpha = 0.04f)
+                        ),
+                        start = Offset(0f, 0f),
+                        end = Offset(200f, 200f)
+                    ),
+                    shape = RoundedCornerShape(bubbleCorner)
+                )
+                .blur(24.dp)
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            items.forEachIndexed { index, item ->
+                val selected = selectedIndex == index
+                val iconColor = if (selected) MaterialTheme.colorScheme.primary else Color.Gray
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { onItemClick(item) }
+                ) {
+                    if (item is BottomNavItem.Main) {
+                        Text(
+                            text = "L",
+                            fontFamily = FontFamily(Font(R.font.fraktur_regular)),
+                            fontSize = 28.sp,
+                            color = iconColor,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    } else if (item.icon != null) {
+                        Icon(
+                            imageVector = item.icon,
+                            contentDescription = item.label,
+                            tint = iconColor,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                    Text(
+                        text = item.label,
+                        color = iconColor,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
         }
     }
 }
@@ -207,70 +301,30 @@ fun CreateButton(
         AlertDialog(
             onDismissRequest = { showDialog = false },
             confirmButton = {
-                // Пусто, т.к. используем кастомный контент ниже
+                TextButton(onClick = { showDialog = false }) {
+                    Text("Отмена")
+                }
             },
-            dismissButton = {
-                // Пусто, т.к. используем кастомный контент ниже
-            },
-            title = null,
+            title = { Text("Выберите действие") },
             text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text("Что создаём?", style = MaterialTheme.typography.titleLarge)
-                    if (errorText != null) {
-                        Text(errorText!!, color = Color.Red, style = MaterialTheme.typography.bodyMedium)
-                    } else {
-                        Text("Выберите, что хотите создать", style = MaterialTheme.typography.bodyMedium)
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                Column {
+                    TextButton(
+                        onClick = {
+                            showDialog = false
+                            onOpenReportForm()
+                        },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Button(
-                            onClick = {
-                                try {
-                                    showDialog = false
-                                    onOpenPlan()
-                                } catch (e: Exception) {
-                                    errorText = "Ошибка: ${e.localizedMessage ?: e.toString()}"
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            )
-                        ) {
-                            Text(
-                                "План на день",
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(vertical = 8.dp)
-                            )
-                        }
-                        Button(
-                            onClick = {
-                                try {
-                                    showDialog = false
-                                    onOpenReportForm()
-                                } catch (e: Exception) {
-                                    errorText = "Ошибка: ${e.localizedMessage ?: e.toString()}"
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF4CAF50)
-                            )
-                        ) {
-                            Text(
-                                "Отчёт за день",
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(vertical = 8.dp)
-                            )
-                        }
+                        Text("Создать отчёт")
+                    }
+                    TextButton(
+                        onClick = {
+                            showDialog = false
+                            onOpenPlan()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Создать план")
                     }
                 }
             }
@@ -285,213 +339,61 @@ fun GoodBadProgressBar(
     modifier: Modifier = Modifier
 ) {
     val total = goodCount + badCount
-    
-    Box(
-        modifier = modifier
-            .height(8.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(Color.LightGray),
-        contentAlignment = Alignment.CenterStart
-    ) {
-        if (total == 0) {
-            // Если нет данных, показываем серую полоску
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Gray)
-            )
-        } else {
-            Row(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // Зелёная часть (good)
-                if (goodCount > 0) {
-                    Box(
-                        modifier = Modifier
-                            .weight(goodCount.toFloat())
-                            .fillMaxHeight()
-                            .background(Color(0xFF4CAF50))
-                    )
-                }
-                // Красная часть (bad)
-                if (badCount > 0) {
-                    Box(
-                        modifier = Modifier
-                            .weight(badCount.toFloat())
-                            .fillMaxHeight()
-                            .background(Color(0xFFF44336))
-                    )
-                }
+    val goodRatio = if (total > 0) goodCount.toFloat() / total else 0.5f
+    val badRatio = if (total > 0) badCount.toFloat() / total else 0.5f
+
+    Column(modifier = modifier) {
+        Text("Прогресс", style = MaterialTheme.typography.titleSmall)
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(Color(0xFFE0E0E0))
+        ) {
+            if (total > 0) {
+                Box(
+                    modifier = Modifier
+                        .weight(goodRatio)
+                        .fillMaxHeight()
+                        .background(Color(0xFF4CAF50))
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(badRatio)
+                        .fillMaxHeight()
+                        .background(Color(0xFFF44336))
+                )
+            } else {
+                // Когда нет данных, показываем пустую полоску
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight()
+                        .background(Color(0xFFE0E0E0))
+                )
             }
         }
     }
 }
 
-fun statusText(status: ReportStatus): String = when (status) {
-    ReportStatus.NOT_STARTED -> "Не начат"
-    ReportStatus.IN_PROGRESS -> "В процессе"
-    ReportStatus.DONE -> "Сделан"
+fun statusText(status: ReportStatus): String {
+    return when (status) {
+        ReportStatus.NOT_STARTED -> "Не начат"
+        ReportStatus.IN_PROGRESS -> "В процессе"
+        ReportStatus.DONE -> "Завершён"
+    }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun MainScreenPreview() {
     LazyBonesTheme {
-        // Моки для превью
-        val goodCount = 7
-        val badCount = 2
-        val reportStatus = ReportStatus.IN_PROGRESS
-        val timerTimeText = "01:23:45"
-        // Вынесем UI-логику в отдельную функцию для превью
-        MainScreenMock(
-            goodCount = goodCount,
-            badCount = badCount,
-            reportStatus = reportStatus,
-            timerTimeText = timerTimeText
+        MainScreen(
+            viewModel = MainViewModel(koinViewModel()),
+            onOpenReportForm = {},
+            onOpenPlan = {}
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun MainScreenMock(
-    goodCount: Int,
-    badCount: Int,
-    reportStatus: ReportStatus,
-    timerTimeText: String,
-    onOpenReportForm: () -> Unit = {},
-    onOpenPlan: () -> Unit = {}
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            TopAppBar(title = { Text("LazyBones") })
-            Text("Статус отчёта: ${statusText(reportStatus)}", style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
-                CounterBox(count = goodCount, label = "Good", color = Color(0xFF4CAF50))
-                CounterBox(count = badCount, label = "Bad", color = Color(0xFFF44336))
-            }
-            GoodBadProgressBar(
-                goodCount = goodCount,
-                badCount = badCount,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Text("До конца: $timerTimeText", style = MaterialTheme.typography.bodyLarge)
-            CreateButton(
-                onOpenReportForm = onOpenReportForm,
-                onOpenPlan = onOpenPlan
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ReportFormScreen(
-    onBack: () -> Unit = {},
-    viewModel: com.katapandroid.lazybones.ui.ReportFormViewModel = koinViewModel()
-) {
-    val content = viewModel.content.collectAsState().value
-    val goodCount = viewModel.goodCount.collectAsState().value
-    val badCount = viewModel.badCount.collectAsState().value
-    var isSaving = remember { mutableStateOf(false) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        OutlinedTextField(
-            value = content,
-            onValueChange = { viewModel.setContent(it) },
-            label = { Text("Заметка") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Button(onClick = { viewModel.setGoodCount(goodCount + 1) }) { Text("Good: $goodCount") }
-            Button(onClick = { viewModel.setBadCount(badCount + 1) }) { Text("Bad: $badCount") }
-        }
-        Spacer(modifier = Modifier.weight(1f))
-        Button(
-            onClick = {
-                isSaving.value = true
-                viewModel.save {
-                    isSaving.value = false
-                    onBack()
-                }
-            },
-            enabled = !isSaving.value,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(if (isSaving.value) "Сохраняем..." else "Сохранить")
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ReportFormScreenPreview() {
-    LazyBonesTheme {
-        ReportFormScreenMock(
-            content = "Моя заметка",
-            goodCount = 2,
-            badCount = 1
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ReportFormScreenMock(
-    content: String,
-    goodCount: Int,
-    badCount: Int
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        TopAppBar(title = { Text("Форма отчёта") })
-        OutlinedTextField(
-            value = content,
-            onValueChange = {},
-            label = { Text("Заметка") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Button(onClick = { }) { Text("Good: $goodCount") }
-            Button(onClick = { }) { Text("Bad: $badCount") }
-        }
-        Spacer(modifier = Modifier.weight(1f))
-        Button(
-            onClick = {},
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Сохранить")
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SettingsScreen() {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        TopAppBar(title = { Text("Настройки") })
-        Text("Заглушка настроек")
     }
 }

@@ -43,35 +43,39 @@ data class ReportUi(
 fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
     val posts by viewModel.posts.collectAsState()
     val customPosts by viewModel.customPosts.collectAsState()
-    
+
     // Отдельные состояния для локальных и кастомных отчётов
     var localSelectionMode by remember { mutableStateOf(false) }
     var selectedLocalReports by remember { mutableStateOf(setOf<Int>()) }
-    
+
     var customSelectionMode by remember { mutableStateOf(false) }
     var selectedCustomReports by remember { mutableStateOf(setOf<Int>()) }
-    
+
     // Состояние для экрана оценки
     var showEvaluationScreen by remember { mutableStateOf<Post?>(null) }
-    
+
     // Состояние для публикации в Telegram
     var showTelegramSettingsDialog by remember { mutableStateOf<Post?>(null) }
     var isPublishing by remember { mutableStateOf(false) }
     var publishResult by remember { mutableStateOf<String?>(null) }
-    
+
     val dateFormat = remember { SimpleDateFormat("d MMMM yyyy", Locale.getDefault()) }
     val coroutineScope = rememberCoroutineScope()
 
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         LazyColumn(
             Modifier.weight(1f),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Локальные отчёты
+            // Отчеты за день
             item {
                 SectionHeader(
-                    title = "ЛОКАЛЬНЫЕ ОТЧЁТЫ",
+                    title = "Отчеты за день",
                     selectionMode = localSelectionMode,
                     selectedCount = selectedLocalReports.size,
                     totalCount = posts.size,
@@ -101,7 +105,7 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
             if (posts.isEmpty()) {
                 item {
                     Text(
-                        text = "Еще нет созданных локальных отчетов",
+                        text = "Еще нет созданных отчетов за день",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 16.dp)
@@ -130,7 +134,7 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                                 // В режиме выделения переключаем состояние элемента
                                 selectedLocalReports = if (selectedLocalReports.contains(idx))
                                     selectedLocalReports - idx else selectedLocalReports + idx
-                                
+
                                 // Если сняли выделение со всех элементов, выключаем режим выделения
                                 if (selectedLocalReports.isEmpty()) {
                                     localSelectionMode = false
@@ -143,11 +147,11 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                     )
                 }
             }
-            // Кастомные отчёты
+            // Планы на день
             item {
                 Spacer(Modifier.height(16.dp))
                 SectionHeader(
-                    title = "КАСТОМНЫЕ ОТЧЁТЫ",
+                    title = "Планы на день",
                     selectionMode = customSelectionMode,
                     selectedCount = selectedCustomReports.size,
                     totalCount = customPosts.size,
@@ -176,7 +180,7 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
             if (customPosts.isEmpty()) {
                 item {
                     Text(
-                        text = "Еще нет созданных кастомных отчетов",
+                        text = "Еще нет созданных планов на день",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 16.dp)
@@ -205,7 +209,7 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                                 // В режиме выделения переключаем состояние элемента
                                 selectedCustomReports = if (selectedCustomReports.contains(idx))
                                     selectedCustomReports - idx else selectedCustomReports + idx
-                                
+
                                 // Если сняли выделение со всех элементов, выключаем режим выделения
                                 if (selectedCustomReports.isEmpty()) {
                                     customSelectionMode = false
@@ -220,12 +224,12 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
             }
             // --- Секция ИЗ TELEGRAM ---
             item {
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(16.dp))
                 Text(
-                    text = "ИЗ TELEGRAM",
+                    text = "Из telegramm",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 16.dp, start = 0.dp, end = 0.dp)
+                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 16.dp)
                 )
                 Row(
                     Modifier
@@ -234,12 +238,20 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedButton(onClick = { /* обновить */ }, modifier = Modifier.weight(1f)) {
-                        Icon(Icons.Default.Done, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(
+                            Icons.Default.Done,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                         Spacer(Modifier.width(4.dp))
                         Text("Обновить")
                     }
                     OutlinedButton(onClick = { /* в группу */ }, modifier = Modifier.weight(1f)) {
-                        Icon(Icons.Default.Send, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(
+                            Icons.Default.Send,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                         Spacer(Modifier.width(4.dp))
                         Text("В группу")
                     }
@@ -260,7 +272,11 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                         )
                         Spacer(Modifier.width(8.dp))
                         Column {
-                            Text("Техническое ограничение", color = Color(0xFFFF9800), style = MaterialTheme.typography.labelMedium)
+                            Text(
+                                "Техническое ограничение",
+                                color = Color(0xFFFF9800),
+                                style = MaterialTheme.typography.labelMedium
+                            )
                             Text(
                                 "Бот не может видеть свои собственные сообщения через Telegram Bot API. Поэтому отправленные вами отчёты могут не отображаться в этом списке.",
                                 style = MaterialTheme.typography.bodySmall,
@@ -269,19 +285,10 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                         }
                     }
                 }
-                OutlinedButton(
-                    onClick = { /* очистить историю */ },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.width(4.dp))
-                    Text("Очистить всю историю")
-                }
             }
         }
     }
-    
+
     // Экран оценки кастомного отчёта
     showEvaluationScreen?.let { post ->
         CustomReportEvaluationScreen(
@@ -294,12 +301,12 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
             }
         )
     }
-    
+
     // Диалог публикации в Telegram
     showTelegramSettingsDialog?.let { post ->
         TelegramPublishDialog(
             post = post,
-            onDismiss = { 
+            onDismiss = {
                 showTelegramSettingsDialog = null
                 publishResult = null
             },
@@ -307,7 +314,7 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                 coroutineScope.launch {
                     isPublishing = true
                     publishResult = null
-                    
+
                     try {
                         val result = viewModel.publishCustomReportToTelegram(post, token, chatId)
                         result.fold(
@@ -333,11 +340,11 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
 
 @Composable
 private fun SectionHeader(
-    title: String, 
-    selectionMode: Boolean, 
+    title: String,
+    selectionMode: Boolean,
     selectedCount: Int = 0,
     totalCount: Int = 0,
-    onSelectAll: () -> Unit, 
+    onSelectAll: () -> Unit,
     onCancel: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -355,8 +362,8 @@ private fun SectionHeader(
         )
         if (selectionMode) {
             if (selectedCount > 0) {
-                TextButton(onClick = onDelete) { 
-                    Text("Удалить", color = MaterialTheme.colorScheme.error) 
+                TextButton(onClick = onDelete) {
+                    Text("Удалить", color = MaterialTheme.colorScheme.error)
                 }
                 TextButton(onClick = onCancel) { Text("Отмена") }
             }
@@ -381,14 +388,14 @@ private fun ReportCard(
     // Получаем оригинальный пост для доступа к checklist
     val posts by (koinViewModel<ReportsViewModel>().posts.collectAsState())
     val customPosts by (koinViewModel<ReportsViewModel>().customPosts.collectAsState())
-    
+
     // Находим соответствующий пост
     val originalPost = if (report.isCustom) {
         customPosts.find { it.date == report.date }
     } else {
         posts.find { it.date == report.date }
     }
-    
+
     val checklist = originalPost?.checklist ?: emptyList()
     Card(
         modifier = Modifier
@@ -405,7 +412,11 @@ private fun ReportCard(
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (report.isSaved) {
-                    Icon(Icons.Default.Done, contentDescription = "Сохранено", tint = Color(0xFF4CAF50))
+                    Icon(
+                        Icons.Default.Done,
+                        contentDescription = "Сохранено",
+                        tint = Color(0xFF4CAF50)
+                    )
                     Spacer(Modifier.width(8.dp))
                 }
                 Text(
@@ -414,7 +425,11 @@ private fun ReportCard(
                     modifier = Modifier.weight(1f)
                 )
                 IconButton(onClick = onSend) {
-                    Icon(Icons.Default.Send, contentDescription = "Отправить в Telegram", tint = MaterialTheme.colorScheme.primary)
+                    Icon(
+                        Icons.Default.Send,
+                        contentDescription = "Отправить в Telegram",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                 }
                 if (report.isCustom) {
                     Spacer(Modifier.width(8.dp))
@@ -433,7 +448,11 @@ private fun ReportCard(
             if (report.isCustom && !report.isSaved) {
                 // Для неоценённых кастомных отчётов показываем checklist
                 if (checklist.isNotEmpty()) {
-                    Text("План на день:", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    Text(
+                        "План на день:",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
                     checklist.forEachIndexed { idx, item ->
                         Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
                     }
@@ -441,7 +460,11 @@ private fun ReportCard(
             } else if (report.isCustom && report.isSaved) {
                 // Для оценённых кастомных отчётов показываем и план, и результаты
                 if (checklist.isNotEmpty()) {
-                    Text("План на день:", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    Text(
+                        "План на день:",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
                     checklist.forEachIndexed { idx, item ->
                         val isCompleted = report.good.contains(item)
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -463,11 +486,16 @@ private fun ReportCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
                         Spacer(Modifier.width(4.dp))
-                        Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            tint = Color(0xFF4CAF50),
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
             }
-            if (report.bad.isNotEmpty()) {
+            if (report.bad.isNotEmpty() && !report.isCustom) {
                 Spacer(Modifier.height(4.dp))
                 // Для оценённых кастомных отчётов и обычных отчётов показываем bad items
                 Text("Я не молодец:", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold)
@@ -475,7 +503,12 @@ private fun ReportCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
                         Spacer(Modifier.width(4.dp))
-                        Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = null,
+                            tint = Color(0xFFD32F2F),
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
             }
@@ -485,33 +518,5 @@ private fun ReportCard(
 
 @Composable
 private fun TelegramReportCard() {
-    Card(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("18 July 2025", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.weight(1f))
-                Icon(Icons.Default.Send, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            }
-            Text("Автор: GroupAnonymousBot", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(4.dp))
-            Text("📅 Отчёт за вторник, 15 июля 2025 г.\n📱 Устройство: Личинка", style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.height(8.dp))
-            Text("✅ Я молодец:", color = Color(0xFF388E3C), fontWeight = FontWeight.Bold)
-            Text("1. ✅ Работал, созванивался\n2. ✅ Делал зарядку\n3. ✅ Лёг спать пораньше", style = MaterialTheme.typography.bodyMedium)
-            Spacer(Modifier.height(4.dp))
-            Text("❌ Я не молодец:", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold)
-            Text(
-                "1. ❌ Пока мало что успешно сделал по работе\n2. ❌ Не решил рабочую задачу\n3. ❌ Опять объяснял Ай что нужно сохранить деньги на чёрный день, и опять оправдывался приводя примеры как мы жили до этого и что если я потеряю работу. Про такое точно надо молчать, и тупо говорить я так решил и не объяснять. Но я постоянно разъясняю, что как мне кажется оправдание.",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Spacer(Modifier.height(4.dp))
-            Text("Опубликовано", color = Color(0xFF388E3C), style = MaterialTheme.typography.labelMedium)
-        }
-    }
+
 }
