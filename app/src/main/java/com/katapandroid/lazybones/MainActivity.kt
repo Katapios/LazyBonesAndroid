@@ -167,7 +167,7 @@ fun CustomBottomNavigation(
     val indicatorWidth = 80.dp
     val indicatorHeight = 60.dp
     val bubbleCorner = 20.dp
-
+    
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.BottomCenter
@@ -202,7 +202,7 @@ fun CustomBottomNavigation(
             items.forEachIndexed { index, item ->
                 val selected = selectedIndex == index
                 val iconColor = if (selected) MaterialTheme.colorScheme.primary else Color.Gray
-
+                
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
@@ -297,14 +297,14 @@ fun CreateButton(
     onOpenPlan: () -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
-    var errorText by remember { mutableStateOf<String?>(null) }
 
     Button(
         onClick = { showDialog = true },
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF4CAF50)
+            containerColor = MaterialTheme.colorScheme.primary
         ),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp)
     ) {
         Text("Создать", style = MaterialTheme.typography.bodyLarge)
     }
@@ -312,31 +312,47 @@ fun CreateButton(
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            confirmButton = {
-                TextButton(onClick = { showDialog = false }) {
-                    Text("Отмена")
-                }
-            },
-            title = { Text("Выберите действие") },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(16.dp),
+            confirmButton = {},
             text = {
-                Column {
-                    TextButton(
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
                         onClick = {
                             showDialog = false
                             onOpenReportForm()
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
+                        shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("Создать отчёт")
+                        Text(
+                            "Создать отчёт",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
-                    TextButton(
+                    Button(
                         onClick = {
                             showDialog = false
                             onOpenPlan()
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
+                        shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("Создать план")
+                        Text(
+                            "Создать план",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
                 }
             }
