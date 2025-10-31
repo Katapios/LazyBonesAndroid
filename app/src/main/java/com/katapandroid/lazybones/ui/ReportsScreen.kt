@@ -28,6 +28,8 @@ import com.katapandroid.lazybones.ui.ReportsViewModel
 import org.koin.androidx.compose.getViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 
 // Мок-данные больше не нужны, используем реальные данные из базы
 
@@ -66,6 +68,8 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
         Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .padding(WindowInsets.systemBars.asPaddingValues())
+            .padding(bottom = 80.dp)
     ) {
         LazyColumn(
             Modifier.weight(1f),

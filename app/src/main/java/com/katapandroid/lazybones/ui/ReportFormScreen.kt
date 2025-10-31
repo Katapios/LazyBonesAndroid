@@ -36,6 +36,8 @@ import org.koin.androidx.compose.koinViewModel
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 
 @Composable
 fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: () -> Unit = {}) {
@@ -70,6 +72,8 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
         Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .padding(WindowInsets.systemBars.asPaddingValues())
+            .padding(bottom = 80.dp)
     ) {
         // Верхняя панель с градиентным фоном
         Box(
