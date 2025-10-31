@@ -261,24 +261,25 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                     }
                 }
                 TelegramReportCard()
-                Card(
+                Surface(
                     Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = null,
-                            tint = Color(0xFFFF9800),
+                            tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(Modifier.width(8.dp))
                         Column {
                             Text(
                                 "Техническое ограничение",
-                                color = Color(0xFFFF9800),
+                                color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.labelMedium
                             )
                             Text(
@@ -401,17 +402,12 @@ private fun ReportCard(
     }
 
     val checklist = originalPost?.checklist ?: emptyList()
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .border(
-                width = if (selected) 2.dp else 1.dp,
-                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                shape = RoundedCornerShape(16.dp)
-            )
             .clickable { onSelect() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(8.dp),
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -419,7 +415,7 @@ private fun ReportCard(
                     Icon(
                         Icons.Default.Done,
                         contentDescription = "Сохранено",
-                        tint = Color(0xFF4CAF50)
+                        tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(Modifier.width(8.dp))
                 }
@@ -477,7 +473,7 @@ private fun ReportCard(
                             Icon(
                                 if (isCompleted) Icons.Default.Check else Icons.Default.Close,
                                 contentDescription = if (isCompleted) "Выполнено" else "Не выполнено",
-                                tint = if (isCompleted) Color(0xFF4CAF50) else Color(0xFFD32F2F),
+                                tint = if (isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -485,7 +481,7 @@ private fun ReportCard(
                 }
             } else if (report.good.isNotEmpty()) {
                 // Для обычных локальных отчётов показываем good items
-                Text("Я молодец:", color = Color(0xFF388E3C), fontWeight = FontWeight.Bold)
+                Text("Я молодец:", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 report.good.forEachIndexed { idx, item ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
@@ -493,7 +489,7 @@ private fun ReportCard(
                         Icon(
                             Icons.Default.Check,
                             contentDescription = null,
-                            tint = Color(0xFF4CAF50),
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -502,7 +498,7 @@ private fun ReportCard(
             if (report.bad.isNotEmpty() && !report.isCustom) {
                 Spacer(Modifier.height(4.dp))
                 // Для оценённых кастомных отчётов и обычных отчётов показываем bad items
-                Text("Я не молодец:", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold)
+                Text("Я не молодец:", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 report.bad.forEachIndexed { idx, item ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("${idx + 1}. $item", style = MaterialTheme.typography.bodyMedium)
@@ -510,7 +506,7 @@ private fun ReportCard(
                         Icon(
                             Icons.Default.Close,
                             contentDescription = null,
-                            tint = Color(0xFFD32F2F),
+                            tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(16.dp)
                         )
                     }

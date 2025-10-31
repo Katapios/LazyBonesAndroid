@@ -3,6 +3,7 @@ package com.katapandroid.lazybones.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -69,7 +70,11 @@ fun VoiceNotesScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VoiceNoteCard(note: VoiceNote, onPlay: () -> Unit = {}, onDelete: () -> Unit = {}) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface
+    ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,

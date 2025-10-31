@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -75,18 +74,11 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
             .padding(WindowInsets.systemBars.asPaddingValues())
             .padding(bottom = 80.dp)
     ) {
-        // Верхняя панель с градиентным фоном
+        // Верхняя панель
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            MaterialTheme.colorScheme.surface
-                        )
-                    )
-                )
+                .background(MaterialTheme.colorScheme.surface)
                 .padding(16.dp)
         ) {
             Row(
@@ -96,7 +88,7 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
                 IconButton(
                     onClick = onBack,
                     colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+                        containerColor = Color.Transparent
                     )
                 ) { 
                     Icon(
@@ -117,16 +109,13 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
                 Spacer(Modifier.width(48.dp))
             }
         }
-        // Переключатель good/bad с улучшенным дизайном
-        Card(
+        // Переключатель good/bad
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(4.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.surface
         ) {
             Row(
                 Modifier
@@ -134,19 +123,16 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Button(
+                TextButton(
                     onClick = { selectedTab = 0 },
-                    colors = ButtonDefaults.buttonColors(
+                    colors = ButtonDefaults.textButtonColors(
                         containerColor = if (selectedTab == 0) 
-                            MaterialTheme.colorScheme.primary 
+                            MaterialTheme.colorScheme.primaryContainer 
                         else 
-                            MaterialTheme.colorScheme.surface
+                            Color.Transparent
                     ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.weight(1f),
-                    elevation = ButtonDefaults.buttonElevation(
-                        defaultElevation = if (selectedTab == 0) 4.dp else 0.dp
-                    )
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.weight(1f)
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -161,7 +147,7 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal,
                             color = if (selectedTab == 0) 
-                                MaterialTheme.colorScheme.onPrimary 
+                                MaterialTheme.colorScheme.onPrimaryContainer 
                             else 
                                 MaterialTheme.colorScheme.onSurface
                         )
@@ -169,25 +155,22 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
                             "(${selectedGoodTags.size})",
                             style = MaterialTheme.typography.bodySmall,
                             color = if (selectedTab == 0) 
-                                MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                MaterialTheme.colorScheme.onPrimaryContainer 
                             else 
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
-                Button(
+                TextButton(
                     onClick = { selectedTab = 1 },
-                    colors = ButtonDefaults.buttonColors(
+                    colors = ButtonDefaults.textButtonColors(
                         containerColor = if (selectedTab == 1) 
-                            MaterialTheme.colorScheme.error 
+                            MaterialTheme.colorScheme.errorContainer 
                         else 
-                            MaterialTheme.colorScheme.surface
+                            Color.Transparent
                     ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.weight(1f),
-                    elevation = ButtonDefaults.buttonElevation(
-                        defaultElevation = if (selectedTab == 1) 4.dp else 0.dp
-                    )
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.weight(1f)
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -202,7 +185,7 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal,
                             color = if (selectedTab == 1) 
-                                MaterialTheme.colorScheme.onError 
+                                MaterialTheme.colorScheme.onErrorContainer 
                             else 
                                 MaterialTheme.colorScheme.onSurface
                         )
@@ -210,26 +193,23 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
                             "(${selectedBadTags.size})",
                             style = MaterialTheme.typography.bodySmall,
                             color = if (selectedTab == 1) 
-                                MaterialTheme.colorScheme.onError.copy(alpha = 0.8f)
+                                MaterialTheme.colorScheme.onErrorContainer 
                             else 
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             }
         }
         Spacer(Modifier.height(12.dp))
-        // WheelPicker тегов с улучшенным дизайном
+        // WheelPicker тегов
         if (wheelTags.isNotEmpty()) {
-            Card(
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(2.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.surface
             ) {
                 Row(
                     Modifier
@@ -249,22 +229,17 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
                         ) {
                             wheelTags.forEachIndexed { idx, tag ->
                                 val selected = idx == wheelIdx
-                                Card(
+                                Surface(
                                     modifier = Modifier
                                         .clickable { setWheelIdx(idx) },
                                     shape = RoundedCornerShape(8.dp),
-                                    elevation = CardDefaults.cardElevation(
-                                        defaultElevation = if (selected) 4.dp else 1.dp
-                                    ),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = if (selected) 
-                                            if (selectedTab == 0) 
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                            else 
-                                                MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+                                    color = if (selected) 
+                                        if (selectedTab == 0) 
+                                            MaterialTheme.colorScheme.primaryContainer
                                         else 
-                                            MaterialTheme.colorScheme.surface
-                                    )
+                                            MaterialTheme.colorScheme.errorContainer
+                                    else 
+                                        Color.Transparent
                                 ) {
                                     Text(
                                         text = tag,
@@ -284,7 +259,7 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
                         }
                     }
                     Spacer(Modifier.width(8.dp))
-                    FloatingActionButton(
+                    IconButton(
                         onClick = {
                             val tag = wheelTags.getOrNull(wheelIdx)
                             if (tag != null) {
@@ -293,18 +268,20 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
                             }
                         },
                         modifier = Modifier.size(48.dp),
-                        containerColor = if (selectedTab == 0) 
-                            MaterialTheme.colorScheme.primary 
-                        else 
-                            MaterialTheme.colorScheme.error,
-                        contentColor = if (selectedTab == 0) 
-                            MaterialTheme.colorScheme.onPrimary 
-                        else 
-                            MaterialTheme.colorScheme.onError
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = if (selectedTab == 0) 
+                                MaterialTheme.colorScheme.primaryContainer 
+                            else 
+                                MaterialTheme.colorScheme.errorContainer
+                        )
                     ) {
                         Icon(
                             Icons.Default.Add, 
-                            contentDescription = "Добавить тег"
+                            contentDescription = "Добавить тег",
+                            tint = if (selectedTab == 0) 
+                                MaterialTheme.colorScheme.onPrimaryContainer 
+                            else 
+                                MaterialTheme.colorScheme.onErrorContainer
                         )
                     }
                 }
@@ -314,15 +291,12 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
 
         // Поле для добавления кастомного пункта (good/bad)
         var customInput by remember { mutableStateOf(TextFieldValue()) }
-        Card(
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(2.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.surface
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -356,12 +330,12 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
                             MaterialTheme.colorScheme.primary 
                         else 
                             MaterialTheme.colorScheme.error,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
                     ),
                     textStyle = MaterialTheme.typography.bodyLarge
                 )
                 Spacer(Modifier.width(12.dp))
-                FloatingActionButton(
+                IconButton(
                     onClick = {
                         val text = customInput.text.trim()
                         if (text.isNotEmpty()) {
@@ -377,38 +351,37 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
                         }
                     },
                     modifier = Modifier.size(48.dp),
-                    containerColor = if (selectedTab == 0) 
-                        MaterialTheme.colorScheme.primary 
-                    else 
-                        MaterialTheme.colorScheme.error,
-                    contentColor = if (selectedTab == 0) 
-                        MaterialTheme.colorScheme.onPrimary 
-                    else 
-                        MaterialTheme.colorScheme.onError
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = if (selectedTab == 0) 
+                            MaterialTheme.colorScheme.primaryContainer 
+                        else 
+                            MaterialTheme.colorScheme.errorContainer
+                    )
                 ) {
                     Icon(
                         Icons.Default.Add, 
-                        contentDescription = "Добавить пункт"
+                        contentDescription = "Добавить пункт",
+                        tint = if (selectedTab == 0) 
+                            MaterialTheme.colorScheme.onPrimaryContainer 
+                        else 
+                            MaterialTheme.colorScheme.onErrorContainer
                     )
                 }
             }
         }
         
-        // Бабл "Сохранить тег" с улучшенным дизайном
+        // Бабл "Сохранить тег"
         if (showSaveTagBubble && lastInputText.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
-            Card(
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(6.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (selectedTab == 0) 
-                        MaterialTheme.colorScheme.primaryContainer 
-                    else 
-                        MaterialTheme.colorScheme.errorContainer
-                )
+                shape = RoundedCornerShape(8.dp),
+                color = if (selectedTab == 0) 
+                    MaterialTheme.colorScheme.primaryContainer 
+                else 
+                    MaterialTheme.colorScheme.errorContainer
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp)
@@ -522,13 +495,10 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
             items(selectedTags) { tag ->
                 AnimatedVisibility(visible = true, enter = fadeIn(), exit = fadeOut()) {
                     if (editingKey == tag) {
-                        Card(
+                        Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            elevation = CardDefaults.cardElevation(4.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            )
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surface
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 OutlinedTextField(
@@ -591,13 +561,10 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
                             }
                         }
                     } else {
-                        Card(
+                        Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            elevation = CardDefaults.cardElevation(2.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            )
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surface
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically, 
@@ -643,7 +610,7 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
                                         setFields(fields - tag)
                                     },
                                     colors = IconButtonDefaults.iconButtonColors(
-                                        containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+                                        containerColor = Color.Transparent
                                     )
                                 ) {
                                     Icon(
@@ -660,16 +627,13 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
             }
         }
         Spacer(Modifier.height(8.dp))
-        // Кнопки с улучшенным дизайном
-        Card(
+        // Кнопки
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(4.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.surface
         ) {
             Column(
                 modifier = Modifier.padding(20.dp)
@@ -697,8 +661,7 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
                         ),
-                        shape = RoundedCornerShape(12.dp),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -726,8 +689,7 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.surface
                         ),
-                        shape = RoundedCornerShape(12.dp),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -757,11 +719,10 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
 
 @Composable
 private fun ChipTag(text: String, onRemove: () -> Unit) {
-    Card(
+    Surface(
         modifier = Modifier.padding(vertical = 4.dp),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -775,14 +736,14 @@ private fun ChipTag(text: String, onRemove: () -> Unit) {
             IconButton(
                 onClick = onRemove, 
                 modifier = Modifier.size(20.dp),
-                colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.error)
+                colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Transparent)
             ) {
-                Icon(
-                    Icons.Default.Close, 
-                    contentDescription = "Удалить", 
-                    tint = MaterialTheme.colorScheme.onError, 
-                    modifier = Modifier.size(16.dp)
-                )
+                                    Icon(
+                                    Icons.Default.Close, 
+                                    contentDescription = "Удалить", 
+                                    tint = MaterialTheme.colorScheme.error, 
+                                    modifier = Modifier.size(16.dp)
+                                )
             }
         }
     }

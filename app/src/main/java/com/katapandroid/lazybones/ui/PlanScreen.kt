@@ -5,6 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -40,7 +43,13 @@ fun PlanScreen(
     var selectedTab by remember { mutableStateOf(0) } // 0 = План, 1 = Теги
     val tabTitles = listOf("План", "Теги")
 
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(WindowInsets.systemBars.asPaddingValues())
+            .padding(bottom = 80.dp)
+    ) {
         TabRow(selectedTabIndex = selectedTab, containerColor = MaterialTheme.colorScheme.surface) {
             tabTitles.forEachIndexed { idx, title ->
                 Tab(
@@ -107,11 +116,10 @@ private fun PlanTab(
             items(planItems, key = { it.id }) { item ->
                 AnimatedVisibility(visible = true, enter = fadeIn(), exit = fadeOut()) {
                     if (editingId == item.id) {
-                        Card(
+                        Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium,
-                            elevation = CardDefaults.cardElevation(2.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surface
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(12.dp)) {
                                 OutlinedTextField(
@@ -134,24 +142,23 @@ private fun PlanTab(
                                             editingId = null
                                         }
                                     },
-                                    colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                    colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                                 ) {
-                                    Text("OK", color = MaterialTheme.colorScheme.onPrimary)
+                                    Text("OK", color = MaterialTheme.colorScheme.onPrimaryContainer)
                                 }
                                 IconButton(
                                     onClick = { editingId = null },
-                                    colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.error)
+                                    colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                                 ) {
-                                    Text("X", color = MaterialTheme.colorScheme.onError)
+                                    Text("X", color = MaterialTheme.colorScheme.onErrorContainer)
                                 }
                             }
                         }
                     } else {
-                        Card(
+                        Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium,
-                            elevation = CardDefaults.cardElevation(2.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surface
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(16.dp)) {
                                 Text(item.text, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
@@ -160,15 +167,15 @@ private fun PlanTab(
                                         editingId = item.id
                                         editingText = TextFieldValue(item.text)
                                     },
-                                    colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                    colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Transparent)
                                 ) {
-                                    Icon(Icons.Default.Edit, contentDescription = "Редактировать", tint = MaterialTheme.colorScheme.onPrimary)
+                                    Icon(Icons.Default.Edit, contentDescription = "Редактировать", tint = MaterialTheme.colorScheme.primary)
                                 }
                                 IconButton(
                                     onClick = { showDeleteDialog = true to item },
-                                    colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.error)
+                                    colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Transparent)
                                 ) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Удалить", tint = MaterialTheme.colorScheme.onError)
+                                    Icon(Icons.Default.Delete, contentDescription = "Удалить", tint = MaterialTheme.colorScheme.error)
                                 }
                             }
                         }
@@ -188,7 +195,7 @@ private fun PlanTab(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                shape = MaterialTheme.shapes.large,
+                shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {
                 Text("Сформировать отчет", style = MaterialTheme.typography.titleMedium)
@@ -328,11 +335,10 @@ private fun TagsTab(viewModel: PlanViewModel) {
             items(tags, key = { it.id }) { tag ->
                 AnimatedVisibility(visible = true, enter = fadeIn(), exit = fadeOut()) {
                     if (editingId == tag.id) {
-                        Card(
+                        Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium,
-                            elevation = CardDefaults.cardElevation(2.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surface
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically, 
@@ -378,11 +384,10 @@ private fun TagsTab(viewModel: PlanViewModel) {
                             }
                         }
                     } else {
-                        Card(
+                        Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium,
-                            elevation = CardDefaults.cardElevation(2.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surface
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically, 

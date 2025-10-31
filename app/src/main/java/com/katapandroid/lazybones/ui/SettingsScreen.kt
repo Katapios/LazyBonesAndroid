@@ -44,12 +44,12 @@ fun SettingsScreen(viewModel: SettingsViewModel = koinViewModel()) {
         )
         // Имя телефона для виджета
         Text("ИМЯ ТЕЛЕФОНА ДЛЯ ВИДЖЕТА", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Card(
+        Surface(
             Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant
         ) {
             Column(Modifier.padding(16.dp)) {
                 OutlinedTextField(
@@ -63,7 +63,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = koinViewModel()) {
                 Button(
                     onClick = { viewModel.savePhoneName() },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Text("Сохранить имя")
                 }
@@ -71,12 +71,12 @@ fun SettingsScreen(viewModel: SettingsViewModel = koinViewModel()) {
         }
         // Telegram
         Text("ИНТЕГРАЦИЯ С ГРУППОЙ В ТЕЛЕГРАММ", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Card(
+        Surface(
             Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant
         ) {
             Column(Modifier.padding(16.dp)) {
                 OutlinedTextField(
@@ -106,7 +106,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = koinViewModel()) {
                 Button(
                     onClick = { viewModel.saveTelegramSettings() },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Text("Сохранить Telegram-данные")
                 }
@@ -114,7 +114,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = koinViewModel()) {
                 OutlinedButton(
                     onClick = { viewModel.testTelegramConnection() },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
+                    shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
                     enabled = !isLoading
                 ) {
@@ -131,14 +131,13 @@ fun SettingsScreen(viewModel: SettingsViewModel = koinViewModel()) {
                 // Показываем результат тестирования
                 testMessageResult?.let { result ->
                     Spacer(Modifier.height(8.dp))
-                    Card(
+                    Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (result.startsWith("✅")) 
-                                MaterialTheme.colorScheme.primaryContainer 
-                            else 
-                                MaterialTheme.colorScheme.errorContainer
-                        )
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (result.startsWith("✅")) 
+                            MaterialTheme.colorScheme.primaryContainer 
+                        else 
+                            MaterialTheme.colorScheme.errorContainer
                     ) {
                         Row(
                             modifier = Modifier.padding(12.dp),
@@ -165,12 +164,12 @@ fun SettingsScreen(viewModel: SettingsViewModel = koinViewModel()) {
         }
         // Уведомления
         Text("НАСТРОЙКА УВЕДОМЛЕНИЙ", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Card(
+        Surface(
             Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant
         ) {
             Column(Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -212,7 +211,7 @@ private fun SegmentedButtonRow(options: List<String>, selectedIndex: Int, onSele
             .fillMaxWidth()
             .background(
                 color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(8.dp)
             )
             .padding(4.dp),
         horizontalArrangement = Arrangement.Center

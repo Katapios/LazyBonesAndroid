@@ -86,15 +86,13 @@ fun CustomReportEvaluationScreen(
                         val item = post.checklist[idx]
                         val isChecked = checkedItems.contains(idx)
                         
-                        Card(
+                        Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isChecked) 
-                                    MaterialTheme.colorScheme.primaryContainer 
-                                else 
-                                    MaterialTheme.colorScheme.surface
-                            )
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isChecked) 
+                                MaterialTheme.colorScheme.primaryContainer 
+                            else 
+                                MaterialTheme.colorScheme.surface
                         ) {
                             Row(
                                 modifier = Modifier
@@ -120,7 +118,7 @@ fun CustomReportEvaluationScreen(
                                                                     Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = if (isChecked) "Выполнено" else "Не выполнено",
-                                    tint = if (isChecked) Color(0xFF4CAF50) else Color(0xFF9E9E9E),
+                                    tint = if (isChecked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(24.dp)
                                 )
                                 }
@@ -149,7 +147,7 @@ fun CustomReportEvaluationScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text(
