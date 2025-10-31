@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">LazyBones</string>
+    <string name="widget_description">Мотивационные напоминания и прогресс дня</string>
 </resources>

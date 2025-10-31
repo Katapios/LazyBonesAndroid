@@ -38,6 +38,15 @@ class PlanViewModel(
     fun deletePlanItem(item: PlanItem) = viewModelScope.launch {
         planItemRepository.delete(item)
     }
+    
+    suspend fun clearAllPlanItems() {
+        try {
+            planItemRepository.deleteAll()
+        } catch (e: Exception) {
+            android.util.Log.e("PlanViewModel", "Error clearing plan items", e)
+            throw e
+        }
+    }
 
     fun addTag(text: String, type: TagType) = viewModelScope.launch {
         tagRepository.insert(Tag(text = text, type = type))

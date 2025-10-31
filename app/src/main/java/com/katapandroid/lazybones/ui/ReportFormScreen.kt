@@ -40,6 +40,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 
 @Composable
 fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: () -> Unit = {}) {
+    val context = LocalContext.current
     val goodTags by viewModel.goodTags.collectAsState()
     val badTags by viewModel.badTags.collectAsState()
     val selectedGoodTags by viewModel.selectedGoodTags.collectAsState()
@@ -654,7 +655,11 @@ fun ReportFormScreen(viewModel: ReportFormViewModel = koinViewModel(), onBack: (
                             viewModel.saveReport(
                                 goodItems = selectedGoodTags,
                                 badItems = selectedBadTags,
-                                onSaved = onBack
+                                onSaved = {
+                                    // Обновляем виджет
+                                    com.katapandroid.lazybones.widget.LazyBonesWidgetProvider.updateAllWidgets(context)
+                                    onBack()
+                                }
                             )
                         },
                         modifier = Modifier.weight(1f),

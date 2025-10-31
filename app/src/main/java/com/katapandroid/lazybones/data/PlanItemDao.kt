@@ -16,4 +16,10 @@ interface PlanItemDao {
 
     @Query("SELECT * FROM plan_items ORDER BY id ASC")
     fun getAll(): Flow<List<PlanItem>>
+    
+    @Query("SELECT * FROM plan_items ORDER BY id ASC")
+    suspend fun getAllSync(): List<PlanItem>
+    
+    @Query("DELETE FROM plan_items")
+    suspend fun deleteAll()
 } 

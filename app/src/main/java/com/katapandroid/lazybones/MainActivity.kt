@@ -353,15 +353,17 @@ fun GoodBadProgressBar(
                 .background(Color(0xFFE0E0E0))
         ) {
             if (total > 0) {
+                val safeGoodRatio = goodRatio.coerceAtLeast(0.01f) // Минимум 0.01 чтобы weight был больше нуля
+                val safeBadRatio = badRatio.coerceAtLeast(0.01f)
                 Box(
                     modifier = Modifier
-                        .weight(goodRatio)
+                        .weight(safeGoodRatio)
                         .fillMaxHeight()
                         .background(Color(0xFF4CAF50))
                 )
                 Box(
                     modifier = Modifier
-                        .weight(badRatio)
+                        .weight(safeBadRatio)
                         .fillMaxHeight()
                         .background(Color(0xFFF44336))
                 )

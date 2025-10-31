@@ -23,4 +23,7 @@ interface PostDao {
 
     @Query("SELECT * FROM posts WHERE published = 0 ORDER BY date DESC")
     fun getUnpublishedPosts(): Flow<List<Post>>
+    
+    @Query("SELECT * FROM posts ORDER BY date DESC")
+    suspend fun getAllPostsSync(): List<Post>
 } 
