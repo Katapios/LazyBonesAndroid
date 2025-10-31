@@ -2,6 +2,9 @@ package com.katapandroid.lazybones.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -35,214 +38,237 @@ fun SettingsScreen(viewModel: SettingsViewModel = koinViewModel()) {
         Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 16.dp)
+            .padding(WindowInsets.systemBars.asPaddingValues())
+            .padding(bottom = 80.dp)
     ) {
-        Spacer(Modifier.height(24.dp))
-        Text(
-            text = "Настройки",
-            style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-        // Имя телефона для виджета
-        Text("ИМЯ ТЕЛЕФОНА ДЛЯ ВИДЖЕТА", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Surface(
-            Modifier
+        // Верхняя панель с заголовком
+        Box(
+            modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(16.dp)
         ) {
-            Column(Modifier.padding(16.dp)) {
-                OutlinedTextField(
-                    value = phoneName,
-                    onValueChange = { 
-                        android.util.Log.d("SettingsScreen", "Phone name changed to: '$it'")
-                        viewModel.setPhoneName(it) 
-                    },
-                    placeholder = { Text("Введите имя телефона") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    label = { Text("Имя устройства") }
-                )
-                Spacer(Modifier.height(12.dp))
-                Button(
-                    onClick = { 
-                        android.util.Log.d("SettingsScreen", "Save button clicked, current phoneName: '$phoneName'")
-                        viewModel.savePhoneName()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Сохранить имя")
-                }
-                
-                // Показываем статус сохранения
-                phoneNameSaveStatus?.let { status ->
-                    Spacer(Modifier.height(8.dp))
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .padding(12.dp)
-                                .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = status,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.weight(1f)
-                            )
-                            TextButton(
-                                onClick = { viewModel.clearPhoneNameSaveStatus() }
-                            ) {
-                                Text(
-                                    text = "✕",
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+            Text(
+                text = "Настройки",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
-        // Telegram
-        Text("ИНТЕГРАЦИЯ С ГРУППОЙ В ТЕЛЕГРАММ", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Surface(
-            Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant
+        
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(Modifier.padding(16.dp)) {
-                OutlinedTextField(
-                    value = telegramToken,
-                    onValueChange = { viewModel.setTelegramToken(it) },
-                    placeholder = { Text("Токен Telegram-бота") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = telegramChatId,
-                    onValueChange = { viewModel.setTelegramChatId(it) },
-                    placeholder = { Text("chat_id группы") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = telegramBotId,
-                    onValueChange = { viewModel.setTelegramBotId(it) },
-                    placeholder = { Text("ID бота (опционально)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(Modifier.height(12.dp))
-                Button(
-                    onClick = { viewModel.saveTelegramSettings() },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Сохранить Telegram-данные")
-                }
-                Spacer(Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick = { viewModel.testTelegramConnection() },
+            // Имя телефона для виджета
+            item {
+                Text("ИМЯ ТЕЛЕФОНА ДЛЯ ВИДЖЕТА", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            item {
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
-                    enabled = !isLoading
+                    color = MaterialTheme.colorScheme.surface
                 ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            color = MaterialTheme.colorScheme.primary
+                    Column(Modifier.padding(16.dp)) {
+                        OutlinedTextField(
+                            value = phoneName,
+                            onValueChange = { 
+                                android.util.Log.d("SettingsScreen", "Phone name changed to: '$it'")
+                                viewModel.setPhoneName(it) 
+                            },
+                            placeholder = { Text("Введите имя телефона") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            label = { Text("Имя устройства") }
                         )
-                        Spacer(Modifier.width(8.dp))
-                    }
-                    Text(if (isLoading) "Проверка..." else "Проверить связь")
-                }
-                
-                // Показываем результат тестирования
-                testMessageResult?.let { result ->
-                    Spacer(Modifier.height(8.dp))
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (result.startsWith("✅")) 
-                            MaterialTheme.colorScheme.primaryContainer 
-                        else 
-                            MaterialTheme.colorScheme.errorContainer
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = { 
+                                android.util.Log.d("SettingsScreen", "Save button clicked, current phoneName: '$phoneName'")
+                                viewModel.savePhoneName()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text(
-                                text = result,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (result.startsWith("✅")) 
-                                    MaterialTheme.colorScheme.onPrimaryContainer 
-                                else 
-                                    MaterialTheme.colorScheme.onErrorContainer
-                            )
-                            Spacer(Modifier.weight(1f))
-                            TextButton(
-                                onClick = { viewModel.clearTestMessageResult() }
+                            Text("Сохранить имя")
+                        }
+                        
+                        // Показываем статус сохранения
+                        phoneNameSaveStatus?.let { status ->
+                            Spacer(Modifier.height(8.dp))
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer
                             ) {
-                                Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Row(
+                                    modifier = Modifier
+                                        .padding(12.dp)
+                                        .fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = status,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    TextButton(
+                                        onClick = { viewModel.clearPhoneNameSaveStatus() }
+                                    ) {
+                                        Text(
+                                            text = "✕",
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // Telegram
+            item {
+                Text("ИНТЕГРАЦИЯ С ГРУППОЙ В ТЕЛЕГРАММ", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            item {
+                Surface(
+                    Modifier
+                        .fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surface
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        OutlinedTextField(
+                            value = telegramToken,
+                            onValueChange = { viewModel.setTelegramToken(it) },
+                            placeholder = { Text("Токен Telegram-бота") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = telegramChatId,
+                            onValueChange = { viewModel.setTelegramChatId(it) },
+                            placeholder = { Text("chat_id группы") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = telegramBotId,
+                            onValueChange = { viewModel.setTelegramBotId(it) },
+                            placeholder = { Text("ID бота (опционально)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = { viewModel.saveTelegramSettings() },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Сохранить Telegram-данные")
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = { viewModel.testTelegramConnection() },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                            enabled = !isLoading
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(Modifier.width(8.dp))
+                            }
+                            Text(if (isLoading) "Проверка..." else "Проверить связь")
+                        }
+                        
+                        // Показываем результат тестирования
+                        testMessageResult?.let { result ->
+                            Spacer(Modifier.height(8.dp))
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (result.startsWith("✅")) 
+                                    MaterialTheme.colorScheme.primaryContainer 
+                                else 
+                                    MaterialTheme.colorScheme.errorContainer
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = result,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = if (result.startsWith("✅")) 
+                                            MaterialTheme.colorScheme.onPrimaryContainer 
+                                        else 
+                                            MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                    Spacer(Modifier.weight(1f))
+                                    TextButton(
+                                        onClick = { viewModel.clearTestMessageResult() }
+                                    ) {
+                                        Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // Уведомления
+            item {
+                Text("НАСТРОЙКА УВЕДОМЛЕНИЙ", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            item {
+                Surface(
+                    Modifier
+                        .fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surface
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Получать уведомления", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                            Switch(checked = notificationsEnabled, onCheckedChange = { viewModel.setNotificationsEnabled(it) })
+                        }
+                        AnimatedVisibility(visible = notificationsEnabled) {
+                            Column {
+                                Spacer(Modifier.height(8.dp))
+                                SegmentedButtonRow(
+                                    options = listOf("Каждый час", "2 раза в день"),
+                                    selectedIndex = notificationMode,
+                                    onSelect = { viewModel.setNotificationMode(it) }
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = if (notificationMode == 0)
+                                        "Уведомления каждый час с 8:00 до 21:00.\nПоследнее уведомление в 21:00 — предостерегающее."
+                                    else
+                                        "Уведомления в 12:00 и 21:00.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text("Сегодня уведомления:", style = MaterialTheme.typography.labelMedium)
+                                Text(notificationTimes.joinToString(), style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
                 }
             }
         }
-        // Уведомления
-        Text("НАСТРОЙКА УВЕДОМЛЕНИЙ", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Surface(
-            Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant
-        ) {
-            Column(Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Получать уведомления", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                    Switch(checked = notificationsEnabled, onCheckedChange = { viewModel.setNotificationsEnabled(it) })
-                }
-                AnimatedVisibility(visible = notificationsEnabled) {
-                    Column {
-                        Spacer(Modifier.height(8.dp))
-                        SegmentedButtonRow(
-                            options = listOf("Каждый час", "2 раза в день"),
-                            selectedIndex = notificationMode,
-                            onSelect = { viewModel.setNotificationMode(it) }
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = if (notificationMode == 0)
-                                "Уведомления каждый час с 8:00 до 21:00.\nПоследнее уведомление в 21:00 — предостерегающее."
-                            else
-                                "Уведомления в 12:00 и 21:00.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text("Сегодня уведомления:", style = MaterialTheme.typography.labelMedium)
-                        Text(notificationTimes.joinToString(), style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            }
-        }
-        Spacer(Modifier.height(24.dp))
     }
 }
 

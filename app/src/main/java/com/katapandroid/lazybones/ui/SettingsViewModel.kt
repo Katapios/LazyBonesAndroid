@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.katapandroid.lazybones.network.TelegramService
 import com.katapandroid.lazybones.data.SettingsRepository
+import com.katapandroid.lazybones.notification.NotificationService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +15,8 @@ import kotlinx.coroutines.launch
 
 class SettingsViewModel(
     private val telegramService: TelegramService,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val context: android.content.Context
 ) : ViewModel() {
     
     private val _phoneName = MutableStateFlow("")
@@ -108,10 +110,29 @@ class SettingsViewModel(
     
     fun setNotificationsEnabled(enabled: Boolean) {
         _notificationsEnabled.value = enabled
+        // Сохраняем настройку в репозиторий
+        settingsRepository.setNotificationsEnabled(enabled)
+        // Обновляем расписание уведомлений
+        updateNotificationSchedule()
     }
     
     fun setNotificationMode(mode: Int) {
         _notificationMode.value = mode
+        // Сохраняем настройку в репозиторий
+        settingsRepository.setNotificationMode(mode)
+        // Обновляем расписание уведомлений
+        updateNotificationSchedule()
+    }
+    
+    private fun updateNotificationSchedule() {
+        viewModelScope.launch {
+            try {
+                val notificationService = NotificationService(context)
+                notificationService.scheduleNotifications()
+            } catch (e: Exception) {
+                android.util.Log.e("SettingsViewModel", "Error scheduling notifications", e)
+            }
+        }
     }
     
     fun savePhoneName() {

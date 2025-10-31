@@ -38,5 +38,5 @@ val appModule = module {
     viewModel { ReportFormViewModel(get<PostRepository>(), get<TagRepository>()) }
     viewModel { VoiceNotesViewModel(get()) }
     viewModel { PlanViewModel(get<PlanItemRepository>(), get<TagRepository>()) }
-    viewModel { SettingsViewModel(get<TelegramService>(), get<SettingsRepository>()) }
+    viewModel { SettingsViewModel(get<TelegramService>(), get<SettingsRepository>(), get()) }
 } 
