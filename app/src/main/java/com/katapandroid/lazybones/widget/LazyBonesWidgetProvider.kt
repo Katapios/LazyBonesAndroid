@@ -272,8 +272,9 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
                 val updatedViews = RemoteViews(context.packageName, R.layout.widget_layout)
                 
                 // Используем данные только из отчета (goodItems/badItems)
-                val goodCount = todayReport?.goodCount ?: 0
-                val badCount = todayReport?.badCount ?: 0
+                // Считаем из размеров списков, чтобы гарантировать правильность
+                val goodCount = todayReport?.goodItems?.size ?: 0
+                val badCount = todayReport?.badItems?.size ?: 0
                 
                 Log.d("Widget", "Final counts: good=$goodCount, bad=$badCount")
                 

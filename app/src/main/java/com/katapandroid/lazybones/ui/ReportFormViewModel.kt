@@ -43,10 +43,115 @@ class ReportFormViewModel(
     val goodFields: StateFlow<Map<String, TextFieldValue>> = _goodFields.asStateFlow()
     private val _badFields = MutableStateFlow<Map<String, TextFieldValue>>(emptyMap())
     val badFields: StateFlow<Map<String, TextFieldValue>> = _badFields.asStateFlow()
+    
+    // Флаг, чтобы загружать отчет только один раз при инициализации
+    private var hasLoadedTodayReport = false
 
     init {
         tagRepository.getByType(TagType.GOOD).onEach { _goodTags.value = it }.launchIn(viewModelScope)
         tagRepository.getByType(TagType.BAD).onEach { _badTags.value = it }.launchIn(viewModelScope)
+        
+        // Загружаем существующий отчет за сегодня при инициализации (только один раз)
+        viewModelScope.launch {
+            if (!hasLoadedTodayReport) {
+                loadTodayReport()
+                hasLoadedTodayReport = true
+            }
+        }
+    }
+    
+    private suspend fun loadTodayReport() {
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val todayStart = calendar.time
+        calendar.add(Calendar.DAY_OF_YEAR, 1)
+        calendar.add(Calendar.MILLISECOND, -1)
+        val todayEnd = calendar.time
+        
+        val allPosts = postRepository.getAllPostsSync()
+        val todayReport = allPosts.firstOrNull { post ->
+            val postDate = post.date
+            val isToday = postDate >= todayStart && postDate <= todayEnd
+            val noChecklist = post.checklist.isEmpty()
+            val hasGoodOrBad = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()
+            isToday && noChecklist && hasGoodOrBad
+        }
+        
+        // Если есть отчет за сегодня и локальные списки пустые, загружаем его пункты
+        // Не перезаписываем, если пользователь уже что-то добавил
+        if (todayReport != null && _selectedGoodTags.value.isEmpty() && _selectedBadTags.value.isEmpty()) {
+            _selectedGoodTags.value = todayReport.goodItems
+            _selectedBadTags.value = todayReport.badItems
+            
+            // Заполняем поля с текстами из goodItems/badItems
+            val goodFieldsMap = todayReport.goodItems.associateWith { TextFieldValue(it) }
+            val badFieldsMap = todayReport.badItems.associateWith { TextFieldValue(it) }
+            _goodFields.value = goodFieldsMap
+            _badFields.value = badFieldsMap
+        }
+    }
+    
+    // Публичный метод для загрузки отчета, если списки пустые (вызывается при входе на экран)
+    suspend fun loadTodayReportIfEmpty() {
+        // Загружаем только если списки пустые (значит пользователь еще ничего не добавил или ViewModel пересоздался)
+        if (_selectedGoodTags.value.isEmpty() && _selectedBadTags.value.isEmpty()) {
+            loadTodayReport()
+        }
+    }
+    
+    // Автоматически сохраняет черновик отчета при добавлении пункта
+    suspend fun saveDraftReport(goodItems: List<String>, badItems: List<String>) {
+        // Проверяем, есть ли уже отчет за сегодня
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val todayStart = calendar.time
+        calendar.add(Calendar.DAY_OF_YEAR, 1)
+        calendar.add(Calendar.MILLISECOND, -1)
+        val todayEnd = calendar.time
+        
+        val allPosts = postRepository.getAllPostsSync()
+        val todayReport = allPosts.firstOrNull { post ->
+            val postDate = post.date
+            val isToday = postDate >= todayStart && postDate <= todayEnd
+            val noChecklist = post.checklist.isEmpty()
+            val hasGoodOrBad = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()
+            isToday && noChecklist && hasGoodOrBad
+        }
+        
+        if (todayReport != null) {
+            // Обновляем существующий отчет за сегодня (остается черновиком)
+            val updatedPost = todayReport.copy(
+                goodItems = goodItems,
+                badItems = badItems,
+                goodCount = goodItems.size,
+                badCount = badItems.size,
+                isDraft = true // Остается черновиком
+            )
+            postRepository.update(updatedPost)
+        } else {
+            // Создаем новый отчет за сегодня (черновик)
+            val post = Post(
+                date = Date(),
+                content = _content.value,
+                checklist = emptyList(),
+                voiceNotes = emptyList(),
+                published = false,
+                isDraft = true, // Черновик - не показывается в отчетах
+                goodItems = goodItems,
+                badItems = badItems,
+                goodCount = goodItems.size,
+                badCount = badItems.size
+            )
+            postRepository.insert(post)
+        }
     }
 
     fun setContent(value: String) { _content.value = value }
@@ -75,22 +180,60 @@ class ReportFormViewModel(
         }
     }
 
-    fun saveReport(goodItems: List<String>, badItems: List<String>, onSaved: () -> Unit) {
-        viewModelScope.launch {
+    suspend fun saveReport(goodItems: List<String>, badItems: List<String>, onSaved: () -> Unit) {
+        // Проверяем, есть ли уже отчет за сегодня
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val todayStart = calendar.time
+        calendar.add(Calendar.DAY_OF_YEAR, 1)
+        calendar.add(Calendar.MILLISECOND, -1)
+        val todayEnd = calendar.time
+        
+        // Получаем все посты и ищем отчет за сегодня (без checklist, с good/bad items)
+        val allPosts = postRepository.getAllPostsSync()
+        val todayReport = allPosts.firstOrNull { post ->
+            val postDate = post.date
+            val isToday = postDate >= todayStart && postDate <= todayEnd
+            val noChecklist = post.checklist.isEmpty()
+            val hasGoodOrBad = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()
+            isToday && noChecklist && hasGoodOrBad
+        }
+        
+        if (todayReport != null) {
+            // Обновляем существующий отчет за сегодня и помечаем как НЕ черновик
+            val updatedPost = todayReport.copy(
+                goodItems = goodItems,
+                badItems = badItems,
+                goodCount = goodItems.size,
+                badCount = badItems.size,
+                isDraft = false // При явном сохранении помечаем как не черновик
+            )
+            postRepository.update(updatedPost)
+        } else {
+            // Создаем новый отчет за сегодня (не черновик, так как явно сохранен)
             val post = Post(
                 date = Date(),
                 content = _content.value,
                 checklist = emptyList(),
                 voiceNotes = emptyList(),
                 published = false,
+                isDraft = false, // Явно сохранен - не черновик
                 goodItems = goodItems,
                 badItems = badItems,
                 goodCount = goodItems.size,
                 badCount = badItems.size
             )
             postRepository.insert(post)
-            onSaved()
         }
+        
+        // Пункты остаются на экране - НЕ очищаем их
+        // НЕ вызываем loadTodayReport() - локальное состояние не трогаем
+        
+        onSaved()
     }
 
     fun save(onSaved: () -> Unit) {

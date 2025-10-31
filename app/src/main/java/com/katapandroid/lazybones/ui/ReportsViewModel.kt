@@ -26,11 +26,15 @@ class ReportsViewModel(
     init {
         postRepository.getAllPosts().onEach { posts ->
             // Локальные отчеты - это отчеты с goodItems или badItems, созданные через ReportFormScreen (без checklist)
+            // Черновики не показываются (isDraft = false)
             _posts.value = posts.filter { 
-                (it.goodItems.isNotEmpty() || it.badItems.isNotEmpty()) && it.checklist.isEmpty() 
+                (it.goodItems.isNotEmpty() || it.badItems.isNotEmpty()) && 
+                it.checklist.isEmpty() && 
+                !it.isDraft
             }
             // Кастомные отчеты - это отчеты с checklist (созданные через PlanScreen), независимо от наличия goodItems/badItems
-            _customPosts.value = posts.filter { it.checklist.isNotEmpty() }
+            // Черновики не показываются
+            _customPosts.value = posts.filter { it.checklist.isNotEmpty() && !it.isDraft }
         }.launchIn(viewModelScope)
     }
 

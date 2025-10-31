@@ -47,8 +47,9 @@ class MainViewModel(
             }
 
             // Используем данные только из отчета (goodItems/badItems)
-            _goodCount.value = todayReport?.goodCount ?: 0
-            _badCount.value = todayReport?.badCount ?: 0
+            // Считаем из размеров списков, чтобы гарантировать правильность
+            _goodCount.value = todayReport?.goodItems?.size ?: 0
+            _badCount.value = todayReport?.badItems?.size ?: 0
             
             // Статус отчета: если есть отчет на сегодня, значит IN_PROGRESS
             _reportStatus.value = when {

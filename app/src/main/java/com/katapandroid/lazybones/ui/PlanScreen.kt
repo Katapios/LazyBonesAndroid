@@ -50,13 +50,14 @@ import com.katapandroid.lazybones.data.TagType
 
 @Composable
 fun PlanScreen(
-    viewModel: PlanViewModel = koinViewModel()
+    viewModel: PlanViewModel = koinViewModel(),
+    initialTab: Int = 0
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val postRepository = koinInject<PostRepository>()
-    var selectedTab by remember { mutableStateOf(0) } // 0 = План, 1 = Отчет, 2 = Теги
+    var selectedTab by remember { mutableStateOf(initialTab) } // 0 = План, 1 = Отчет, 2 = Теги
     val tabTitles = listOf("План", "Отчет", "Теги")
 
     Column(
@@ -557,6 +558,12 @@ private fun ReportFormTab(
     coroutineScope: CoroutineScope
 ) {
     val context = LocalContext.current
+    
+    // Загружаем отчет за сегодня при каждом входе на экран
+    LaunchedEffect(Unit) {
+        viewModel.loadTodayReportIfEmpty()
+    }
+    
     // Скопируем логику из ReportFormScreen, но без верхней панели и без onBack
     val goodTags by viewModel.goodTags.collectAsState()
     val badTags by viewModel.badTags.collectAsState()
@@ -744,8 +751,16 @@ private fun ReportFormTab(
                         onClick = {
                             val tag = wheelTags.getOrNull(wheelIdx)
                             if (tag != null) {
-                                setSelectedTags(selectedTags + tag)
+                                val newTags = selectedTags + tag
+                                setSelectedTags(newTags)
                                 setFields(fields + (tag to TextFieldValue(tag)))
+                                
+                                // Автоматически сохраняем черновик отчета при добавлении пункта
+                                val newGoodTags = if (selectedTab == 0) newTags else selectedGoodTags
+                                val newBadTags = if (selectedTab == 1) newTags else selectedBadTags
+                                coroutineScope.launch {
+                                    viewModel.saveDraftReport(newGoodTags, newBadTags)
+                                }
                             }
                         },
                         modifier = Modifier.size(48.dp),
@@ -819,6 +834,10 @@ private fun ReportFormTab(
                     onClick = {
                         val text = customInput.text.trim()
                         if (text.isNotEmpty()) {
+                            val newGoodTags = if (selectedTab == 0) selectedGoodTags + text else selectedGoodTags
+                            val newBadTags = if (selectedTab == 1) selectedBadTags + text else selectedBadTags
+                            
+                            // Обновляем локальное состояние
                             if (selectedTab == 0) {
                                 setSelectedTags(selectedGoodTags + text)
                                 setFields(goodFields + (text to TextFieldValue(text)))
@@ -828,6 +847,11 @@ private fun ReportFormTab(
                             }
                             customInput = TextFieldValue()
                             showSaveTagBubble = false
+                            
+                            // Автоматически сохраняем черновик отчета при добавлении пункта
+                            coroutineScope.launch {
+                                viewModel.saveDraftReport(newGoodTags, newBadTags)
+                            }
                         }
                     },
                     modifier = Modifier.size(48.dp),
@@ -1012,6 +1036,13 @@ private fun ReportFormTab(
                                                 setSelectedTags(newTags)
                                                 setFields(fields - tag + (newText to (fields[tag] ?: TextFieldValue(newText)).copy(text = newText)))
                                                 editingKey = null
+                                                
+                                                // Обновляем черновик отчета при редактировании пункта
+                                                val newGoodTags = if (selectedTab == 0) newTags else selectedGoodTags
+                                                val newBadTags = if (selectedTab == 1) newTags else selectedBadTags
+                                                coroutineScope.launch {
+                                                    viewModel.saveDraftReport(newGoodTags, newBadTags)
+                                                }
                                             }
                                         },
                                         colors = ButtonDefaults.buttonColors(
@@ -1079,8 +1110,16 @@ private fun ReportFormTab(
                                 }
                                 IconButton(
                                     onClick = {
-                                        setSelectedTags(selectedTags - tag)
+                                        val newTags = selectedTags - tag
+                                        setSelectedTags(newTags)
                                         setFields(fields - tag)
+                                        
+                                        // Обновляем черновик отчета при удалении пункта
+                                        val newGoodTags = if (selectedTab == 0) newTags else selectedGoodTags
+                                        val newBadTags = if (selectedTab == 1) newTags else selectedBadTags
+                                        coroutineScope.launch {
+                                            viewModel.saveDraftReport(newGoodTags, newBadTags)
+                                        }
                                     },
                                     colors = IconButtonDefaults.iconButtonColors(
                                         containerColor = Color.Transparent
@@ -1100,7 +1139,7 @@ private fun ReportFormTab(
             }
         }
         Spacer(Modifier.height(8.dp))
-        // Кнопки
+        // Кнопка сохранения отчета
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1111,88 +1150,47 @@ private fun ReportFormTab(
             Column(
                 modifier = Modifier.padding(20.dp)
             ) {
-                Text(
-                    "Действия",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(Modifier.height(16.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = {
-                            coroutineScope.launch {
-                                viewModel.saveReport(
-                                    goodItems = selectedGoodTags,
-                                    badItems = selectedBadTags,
-                                    onSaved = {
-                                        // Обновляем виджет
-                                        com.katapandroid.lazybones.widget.LazyBonesWidgetProvider.updateAllWidgets(context)
-                                        coroutineScope.launch {
-                                            snackbarHostState.showSnackbar("Отчет сохранен")
-                                        }
-                                        // Очищаем выбранные теги после сохранения
-                                        viewModel.setSelectedGoodTags(emptyList())
-                                        viewModel.setSelectedBadTags(emptyList())
-                                        viewModel.setGoodFields(emptyMap())
-                                        viewModel.setBadFields(emptyMap())
+                Button(
+                    onClick = {
+                        // Сохраняем отчёт за сегодня с накопленными good/bad пунктами
+                        // Пункты остаются на экране для дальнейшего редактирования
+                        coroutineScope.launch {
+                            viewModel.saveReport(
+                                goodItems = selectedGoodTags,
+                                badItems = selectedBadTags,
+                                onSaved = {
+                                    // Обновляем виджет, но НЕ очищаем пункты
+                                    com.katapandroid.lazybones.widget.LazyBonesWidgetProvider.updateAllWidgets(context)
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Отчет сохранен")
                                     }
-                                )
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Add, 
-                                contentDescription = null, 
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                "Сохранить", 
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
+                                }
                             )
                         }
-                    }
-                    Button(
-                        onClick = { /* опубликовать */ },
-                        modifier = Modifier.weight(1f),
-                        enabled = false,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        shape = RoundedCornerShape(8.dp)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Send, 
-                                contentDescription = null, 
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                "Опубликовать", 
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
+                        Icon(
+                            Icons.Default.Add, 
+                            contentDescription = null, 
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Сохранить отчёт", 
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
             }

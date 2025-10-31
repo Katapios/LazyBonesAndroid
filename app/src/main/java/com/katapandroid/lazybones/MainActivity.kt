@@ -48,7 +48,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.katapandroid.lazybones.ui.MainViewModel
 import com.katapandroid.lazybones.ui.PlanScreen
-import com.katapandroid.lazybones.ui.ReportFormScreen
 import com.katapandroid.lazybones.ui.ReportStatus
 import com.katapandroid.lazybones.ui.ReportsScreen
 import com.katapandroid.lazybones.ui.SettingsScreen
@@ -83,13 +82,26 @@ class MainActivity : ComponentActivity() {
                         composable("main") {
                             MainScreen(
                                 viewModel = viewModel,
-                                onOpenReportForm = { navController.navigate("report_form") },
-                                onOpenPlan = { navController.navigate("plan") }
+                                onOpenReportForm = { navController.navigate("plan_report") },
+                                onOpenPlan = { navController.navigate("plan_plan") }
                             )
                         }
                         composable("plan") {
                             PlanScreen(
-                                viewModel = getViewModel()
+                                viewModel = getViewModel(),
+                                initialTab = 0
+                            )
+                        }
+                        composable("plan_report") {
+                            PlanScreen(
+                                viewModel = getViewModel(),
+                                initialTab = 1
+                            )
+                        }
+                        composable("plan_plan") {
+                            PlanScreen(
+                                viewModel = getViewModel(),
+                                initialTab = 0
                             )
                         }
                         composable("reports") {
@@ -99,11 +111,6 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("settings") {
                             SettingsScreen(
-                                viewModel = getViewModel()
-                            )
-                        }
-                        composable("report_form") {
-                            ReportFormScreen(
                                 viewModel = getViewModel()
                             )
                         }
@@ -141,7 +148,12 @@ fun CustomBottomNavigation(
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val tabCount = items.size
-    val selectedIndex = items.indexOfFirst { it.route == currentRoute }.takeIf { it != -1 } ?: 0
+    // Для plan_report и plan_plan считаем, что выбрана вкладка Plan
+    val normalizedRoute = when (currentRoute) {
+        "plan_report", "plan_plan" -> "plan"
+        else -> currentRoute
+    }
+    val selectedIndex = items.indexOfFirst { it.route == normalizedRoute }.takeIf { it != -1 } ?: 0
     val tabWidth = (screenWidth - 32.dp) / tabCount
     val bubbleCenter = tabWidth * selectedIndex + tabWidth / 2 + 16.dp
     val animatedOffset by animateDpAsState(

@@ -13,6 +13,7 @@ data class Post(
     val checklist: List<String>,
     val voiceNotes: List<Long>, // id-шники VoiceNote
     val published: Boolean = false,
+    val isDraft: Boolean = true, // Черновик (не показывается в отчетах до сохранения)
     val goodItems: List<String> = emptyList(), // Список good пунктов
     val badItems: List<String> = emptyList(),  // Список bad пунктов
     val goodCount: Int = 0,
