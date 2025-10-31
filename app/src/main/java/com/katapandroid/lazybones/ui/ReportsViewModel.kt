@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.katapandroid.lazybones.data.Post
 import com.katapandroid.lazybones.data.PostRepository
+import com.katapandroid.lazybones.data.SettingsRepository
 import com.katapandroid.lazybones.network.TelegramService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +14,8 @@ import kotlinx.coroutines.flow.onEach
 
 class ReportsViewModel(
     private val postRepository: PostRepository,
-    private val telegramService: TelegramService
+    private val telegramService: TelegramService,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
     private val _posts = MutableStateFlow<List<Post>>(emptyList())
     val posts: StateFlow<List<Post>> = _posts.asStateFlow()
@@ -51,13 +53,16 @@ class ReportsViewModel(
         chatId: String
     ): Result<String> {
         return try {
+            // Получаем сохраненное имя устройства
+            val deviceName = settingsRepository.getPhoneName()
             val result = telegramService.sendCustomReport(
                 token = token,
                 chatId = chatId,
                 date = post.date,
                 checklist = post.checklist,
                 goodItems = post.goodItems,
-                badItems = post.badItems
+                badItems = post.badItems,
+                deviceName = deviceName
             )
             
             result.fold(

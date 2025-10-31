@@ -49,10 +49,18 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
-        Log.d("Widget", "onUpdate called with ${appWidgetIds.size} widget(s)")
-        for (appWidgetId in appWidgetIds) {
-            Log.d("Widget", "Updating widget ID: $appWidgetId")
-            updateWidget(context, appWidgetManager, appWidgetId)
+        Log.wtf("Widget", "🚀🚀🚀 onUpdate called with ${appWidgetIds.size} widget(s) 🚀🚀🚀")
+        android.util.Log.println(android.util.Log.ERROR, "Widget", "CRITICAL: onUpdate START")
+        try {
+            for (appWidgetId in appWidgetIds) {
+                Log.wtf("Widget", "🔄 Updating widget ID: $appWidgetId")
+                updateWidget(context, appWidgetManager, appWidgetId)
+            }
+            android.util.Log.println(android.util.Log.ERROR, "Widget", "CRITICAL: onUpdate END")
+        } catch (e: Throwable) {
+            Log.e("Widget", "FATAL ERROR in onUpdate", e)
+            android.util.Log.println(android.util.Log.ERROR, "Widget", "FATAL: ${e.message}")
+            e.printStackTrace()
         }
     }
 
@@ -74,7 +82,8 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetId: Int
     ) {
-        Log.d("Widget", "updateWidget called for ID: $appWidgetId")
+        Log.wtf("Widget", "⚡ updateWidget called for ID: $appWidgetId")
+        android.util.Log.println(android.util.Log.ERROR, "Widget", "updateWidget START for ID=$appWidgetId")
         
         try {
             // onUpdate должен быть быстрым, поэтому показываем виджет с дефолтными значениями
@@ -168,7 +177,8 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
         // Загружаем данные асинхронно
         scope.launch {
             try {
-                Log.d("Widget", "Starting async data load")
+                Log.wtf("Widget", "📡 Starting async data load")
+                android.util.Log.println(android.util.Log.ERROR, "Widget", "async data load START")
                 val db = withContext(Dispatchers.IO) {
                     try {
                         // Пытаемся получить базу через Koin
@@ -213,12 +223,16 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
                 }
 
                 // Получаем посты и незавершенные пункты плана
+                Log.i("Widget", "===== WIDGET UPDATE START =====")
                 Log.d("Widget", "Fetching data from database")
                 val (posts, currentPlanItems) = withContext(Dispatchers.IO) {
                     try {
                         val postsResult = db.postDao().getAllPostsSync()
                         val planItemsResult = db.planItemDao().getAllSync()
-                        Log.d("Widget", "Fetched ${postsResult.size} posts and ${planItemsResult.size} plan items")
+                        Log.i("Widget", "Fetched ${postsResult.size} posts and ${planItemsResult.size} plan items")
+                        if (planItemsResult.isNotEmpty()) {
+                            Log.i("Widget", "Plan items texts: ${planItemsResult.map { it.text }.joinToString(", ")}")
+                        }
                         Pair(postsResult, planItemsResult)
                     } catch (e: Exception) {
                         Log.e("Widget", "Error getting data", e)
@@ -251,6 +265,10 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
 
                 Log.d("Widget", "Found report: ${todayReport != null}, current plan items: ${currentPlanItems.size}")
                 
+                if (currentPlanItems.isNotEmpty()) {
+                    Log.d("Widget", "Plan items found: ${currentPlanItems.map { it.text }}")
+                }
+                
                 val updatedViews = RemoteViews(context.packageName, R.layout.widget_layout)
                 
                 // Используем данные только из отчета (goodItems/badItems)
@@ -259,25 +277,65 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
                 
                 Log.d("Widget", "Final counts: good=$goodCount, bad=$badCount")
                 
-                // Мотивационный текст - используем текущие пункты плана, если они есть
+                // Мотивационный текст - используем Samsung AI для генерации, если доступен
                 val motivationText = try {
-                    // Приоритет: текущие незавершенные пункты плана > сохраненный план > дефолтное сообщение
                     when {
                         currentPlanItems.isNotEmpty() -> {
-                            // Используем текущие пункты плана
+                            // Генерируем мотивационную фразу с пунктом плана
                             val randomItem = currentPlanItems.random().text
-                            val messages = listOf(
-                                "Эй, а ты не забыл сделать «$randomItem»?",
-                                "Пора взяться за «$randomItem»!",
-                                "Не забудь про «$randomItem», дружище!",
-                                "Как насчет «$randomItem»?",
-                                "Время для «$randomItem»!",
-                                "Твоя очередь: «$randomItem»!"
+                            Log.i("Widget", "🎯 Generating phrase for plan item: '$randomItem'")
+                            
+                            // Статические мотивационные фразы
+                            val templates = listOf(
+                                listOf(
+                                    "Эй, а ты не забыл сделать «$randomItem»?",
+                                    "Как насчет «$randomItem»?",
+                                    "А что там с «$randomItem»?",
+                                    "Не пора ли заняться «$randomItem»?",
+                                    "Помнишь про «$randomItem»?"
+                                ),
+                                listOf(
+                                    "Пора взяться за «$randomItem»!",
+                                    "Время для «$randomItem»!",
+                                    "Давай сделаем «$randomItem»!",
+                                    "Берись за «$randomItem»!",
+                                    "Настало время «$randomItem»!"
+                                ),
+                                listOf(
+                                    "Не забудь про «$randomItem», дружище!",
+                                    "Твоя очередь: «$randomItem»!",
+                                    "Дружок, пора «$randomItem»!",
+                                    "Коллега, не забудь «$randomItem»!",
+                                    "Братан, время для «$randomItem»!"
+                                ),
+                                listOf(
+                                    "Ты сможешь справиться с «$randomItem»!",
+                                    "«$randomItem» ждет тебя!",
+                                    "Вперед к «$randomItem»!",
+                                    "Твой путь к «$randomItem» начинается сейчас!",
+                                    "Сегодня день для «$randomItem»!"
+                                ),
+                                listOf(
+                                    "Йо, забей на прокрастинацию — «$randomItem»!",
+                                    "Хватит откладывать, давай «$randomItem»!",
+                                    "Так, стоп! Надо сделать «$randomItem»!",
+                                    "Эй, внимание! «$randomItem» не сделает себя сам!"
+                                ),
+                                listOf(
+                                    "Каждый великий день начинается с «$randomItem»!",
+                                    "«$randomItem» — это шаг к лучшему тебе!",
+                                    "Сделай «$randomItem» и почувствуй прогресс!",
+                                    "«$randomItem» — твой маленький шаг к большим целям!"
+                                )
                             )
-                            messages.random()
+                            
+                            val selectedTemplate = templates.random()
+                            val phrase = selectedTemplate.random()
+                            Log.i("Widget", "✨ Generated phrase: '$phrase'")
+                            phrase
                         }
-                        // Убрали логику с todayPlan - мотивационные сообщения только из текущих пунктов плана
                         else -> {
+                            Log.d("Widget", "No plan items, using static fallback messages")
                             val messages = listOf(
                                 "Не пора ли что-нибудь запланировать, LABотряс?",
                                 "Планы не строятся сами по себе, друг мой!",
@@ -290,10 +348,12 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
                     }
                 } catch (e: Exception) {
                     Log.e("Widget", "Error generating motivation text", e)
+                    e.printStackTrace()
                     "Не пора ли что-нибудь запланировать, LABотряс?"
                 }
                 
-                Log.d("Widget", "Motivation text: $motivationText")
+                Log.i("Widget", "✅ FINAL MOTIVATION TEXT: '$motivationText'")
+                Log.i("Widget", "===== WIDGET UPDATE END =====")
                 
                 updatedViews.setTextViewText(R.id.widget_motivation_text, motivationText)
                 updatedViews.setTextViewText(R.id.widget_good_count, goodCount.toString())

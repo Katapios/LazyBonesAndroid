@@ -27,6 +27,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = koinViewModel()) {
     val notificationMode by viewModel.notificationMode.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val testMessageResult by viewModel.testMessageResult.collectAsState()
+    val phoneNameSaveStatus by viewModel.phoneNameSaveStatus.collectAsState()
     
     val notificationTimes = if (notificationMode == 0) listOf("17:00", "18:00", "19:00", "20:00", "21:00") else listOf("12:00", "21:00")
 
@@ -54,18 +55,59 @@ fun SettingsScreen(viewModel: SettingsViewModel = koinViewModel()) {
             Column(Modifier.padding(16.dp)) {
                 OutlinedTextField(
                     value = phoneName,
-                    onValueChange = { viewModel.setPhoneName(it) },
+                    onValueChange = { 
+                        android.util.Log.d("SettingsScreen", "Phone name changed to: '$it'")
+                        viewModel.setPhoneName(it) 
+                    },
                     placeholder = { Text("Введите имя телефона") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    label = { Text("Имя устройства") }
                 )
                 Spacer(Modifier.height(12.dp))
                 Button(
-                    onClick = { viewModel.savePhoneName() },
+                    onClick = { 
+                        android.util.Log.d("SettingsScreen", "Save button clicked, current phoneName: '$phoneName'")
+                        viewModel.savePhoneName()
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text("Сохранить имя")
+                }
+                
+                // Показываем статус сохранения
+                phoneNameSaveStatus?.let { status ->
+                    Spacer(Modifier.height(8.dp))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(12.dp)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = status,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.weight(1f)
+                            )
+                            TextButton(
+                                onClick = { viewModel.clearPhoneNameSaveStatus() }
+                            ) {
+                                Text(
+                                    text = "✕",
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

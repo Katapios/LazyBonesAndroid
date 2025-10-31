@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.skip
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(
@@ -39,25 +41,52 @@ class SettingsViewModel(
     private val _testMessageResult = MutableStateFlow<String?>(null)
     val testMessageResult: StateFlow<String?> = _testMessageResult.asStateFlow()
     
+    private val _phoneNameSaveStatus = MutableStateFlow<String?>(null)
+    val phoneNameSaveStatus: StateFlow<String?> = _phoneNameSaveStatus.asStateFlow()
+    
     init {
-        // Загружаем сохраненные настройки
+        // Загружаем сохраненные настройки при первой инициализации
         viewModelScope.launch {
-            settingsRepository.phoneName.collect { _phoneName.value = it }
+            // Загружаем начальное значение один раз при старте
+            val initialName = settingsRepository.getPhoneName()
+            _phoneName.value = initialName
+            
+            // Слушаем изменения из репозитория (когда сохраняется извне)
+            // Используем skip(1), чтобы пропустить начальное значение, которое уже загружено
+            settingsRepository.phoneName
+                .distinctUntilChanged()
+                .collect { newValue ->
+                    // Обновляем только если значение действительно изменилось
+                    if (_phoneName.value != newValue) {
+                        android.util.Log.d("SettingsViewModel", "Phone name updated from repository: '$newValue'")
+                        _phoneName.value = newValue
+                    }
+                }
         }
         viewModelScope.launch {
-            settingsRepository.telegramToken.collect { _telegramToken.value = it }
+            settingsRepository.telegramToken
+                .distinctUntilChanged()
+                .collect { _telegramToken.value = it }
         }
         viewModelScope.launch {
-            settingsRepository.telegramChatId.collect { _telegramChatId.value = it }
+            settingsRepository.telegramChatId
+                .distinctUntilChanged()
+                .collect { _telegramChatId.value = it }
         }
         viewModelScope.launch {
-            settingsRepository.telegramBotId.collect { _telegramBotId.value = it }
+            settingsRepository.telegramBotId
+                .distinctUntilChanged()
+                .collect { _telegramBotId.value = it }
         }
         viewModelScope.launch {
-            settingsRepository.notificationsEnabled.collect { _notificationsEnabled.value = it }
+            settingsRepository.notificationsEnabled
+                .distinctUntilChanged()
+                .collect { _notificationsEnabled.value = it }
         }
         viewModelScope.launch {
-            settingsRepository.notificationMode.collect { _notificationMode.value = it }
+            settingsRepository.notificationMode
+                .distinctUntilChanged()
+                .collect { _notificationMode.value = it }
         }
     }
     
@@ -86,7 +115,24 @@ class SettingsViewModel(
     }
     
     fun savePhoneName() {
-        settingsRepository.setPhoneName(_phoneName.value)
+        val nameToSave = _phoneName.value.trim()
+        android.util.Log.d("SettingsViewModel", "Saving phone name: '$nameToSave' (from _phoneName.value: '${_phoneName.value}')")
+        settingsRepository.setPhoneName(nameToSave)
+        val savedName = settingsRepository.getPhoneName()
+        android.util.Log.d("SettingsViewModel", "Phone name saved, verifying: repository.getPhoneName() = '$savedName'")
+        
+        // Показываем подтверждение
+        _phoneNameSaveStatus.value = "✅ Имя сохранено: $savedName"
+        
+        // Автоматически скрываем сообщение через 3 секунды
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(3000)
+            _phoneNameSaveStatus.value = null
+        }
+    }
+    
+    fun clearPhoneNameSaveStatus() {
+        _phoneNameSaveStatus.value = null
     }
     
     fun saveTelegramSettings() {

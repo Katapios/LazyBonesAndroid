@@ -41,8 +41,14 @@ class SettingsRepository(context: Context) {
     
     // Setters
     fun setPhoneName(name: String) {
-        prefs.edit().putString(KEY_PHONE_NAME, name).apply()
+        android.util.Log.d("SettingsRepository", "Setting phone name to: '$name' (current: '${_phoneName.value}')")
+        val result = prefs.edit().putString(KEY_PHONE_NAME, name).commit()
+        val savedValue = prefs.getString(KEY_PHONE_NAME, null)
+        android.util.Log.d("SettingsRepository", "SharedPreferences commit result: $result, saved value: '$savedValue'")
+        
+        // Всегда обновляем StateFlow, чтобы уведомить подписчиков
         _phoneName.value = name
+        android.util.Log.d("SettingsRepository", "Updated _phoneName.value to: '${_phoneName.value}'")
     }
     
     fun setTelegramToken(token: String) {
@@ -78,4 +84,4 @@ class SettingsRepository(context: Context) {
         private const val KEY_NOTIFICATIONS_ENABLED = "notifications_enabled"
         private const val KEY_NOTIFICATION_MODE = "notification_mode"
     }
-} 
+}

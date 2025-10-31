@@ -44,7 +44,8 @@ class TelegramService {
         date: Date,
         checklist: List<String>,
         goodItems: List<String>,
-        badItems: List<String>
+        badItems: List<String>,
+        deviceName: String = "LazyBones"
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
             val dateFormat = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault())
@@ -52,7 +53,7 @@ class TelegramService {
             
             val message = buildString {
                 appendLine("📅 Отчёт за ${dateFormat.format(date)}")
-                appendLine("📱 Устройство: LazyBones")
+                appendLine("📱 Устройство: ${deviceName.ifEmpty { "LazyBones" }}")
                 appendLine("⏰ Время: ${timeFormat.format(date)}")
                 appendLine()
                 
