@@ -28,11 +28,19 @@ fun SettingsScreen(viewModel: SettingsViewModel = koinViewModel()) {
     val telegramBotId by viewModel.telegramBotId.collectAsState()
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsState()
     val notificationMode by viewModel.notificationMode.collectAsState()
+    val poolStartMinutes by viewModel.poolStartMinutes.collectAsState()
+    val poolEndMinutes by viewModel.poolEndMinutes.collectAsState()
+    val unlockReportCreation by viewModel.unlockReportCreation.collectAsState()
+    val unlockPlanCreation by viewModel.unlockPlanCreation.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val testMessageResult by viewModel.testMessageResult.collectAsState()
     val phoneNameSaveStatus by viewModel.phoneNameSaveStatus.collectAsState()
     
     val notificationTimes = if (notificationMode == 0) listOf("17:00", "18:00", "19:00", "20:00", "21:00") else listOf("12:00", "21:00")
+    
+    // Форматируем минуты в формат ЧЧ:ММ
+    val poolStartTime = String.format("%02d:%02d", poolStartMinutes / 60, poolStartMinutes % 60)
+    val poolEndTime = String.format("%02d:%02d", poolEndMinutes / 60, poolEndMinutes % 60)
 
     Column(
         Modifier
@@ -264,6 +272,75 @@ fun SettingsScreen(viewModel: SettingsViewModel = koinViewModel()) {
                                 Text("Сегодня уведомления:", style = MaterialTheme.typography.labelMedium)
                                 Text(notificationTimes.joinToString(), style = MaterialTheme.typography.bodySmall)
                             }
+                        }
+                    }
+                }
+            }
+            // Настройки временного пула
+            item {
+                Text("НАСТРОЙКА ВРЕМЕННОГО ПУЛА", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            item {
+                Surface(
+                    Modifier
+                        .fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surface
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text("Начало пула", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = poolStartTime,
+                            onValueChange = { timeStr ->
+                                // Парсим время в формате ЧЧ:ММ и конвертируем в минуты
+                                try {
+                                    val parts = timeStr.split(":")
+                                    if (parts.size == 2) {
+                                        val hours = parts[0].toInt().coerceIn(0, 23)
+                                        val minutes = parts[1].toInt().coerceIn(0, 59)
+                                        viewModel.setPoolStartMinutes(hours * 60 + minutes)
+                                    }
+                                } catch (e: Exception) {
+                                    // Игнорируем некорректный ввод
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("00:00") },
+                            label = { Text("Начало (ЧЧ:ММ)") }
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text("Конец пула", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = poolEndTime,
+                            onValueChange = { timeStr ->
+                                try {
+                                    val parts = timeStr.split(":")
+                                    if (parts.size == 2) {
+                                        val hours = parts[0].toInt().coerceIn(0, 23)
+                                        val minutes = parts[1].toInt().coerceIn(0, 59)
+                                        viewModel.setPoolEndMinutes(hours * 60 + minutes)
+                                    }
+                                } catch (e: Exception) {
+                                    // Игнорируем некорректный ввод
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("24:00") },
+                            label = { Text("Конец (ЧЧ:ММ)") }
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Text("Разблокировка создания", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Разблокировать создание отчета", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                            Switch(checked = unlockReportCreation, onCheckedChange = { viewModel.setUnlockReportCreation(it) })
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Разблокировать создание плана", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                            Switch(checked = unlockPlanCreation, onCheckedChange = { viewModel.setUnlockPlanCreation(it) })
                         }
                     }
                 }

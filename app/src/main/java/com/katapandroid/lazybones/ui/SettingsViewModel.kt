@@ -37,6 +37,18 @@ class SettingsViewModel(
     private val _notificationMode = MutableStateFlow(0)
     val notificationMode: StateFlow<Int> = _notificationMode.asStateFlow()
     
+    private val _poolStartMinutes = MutableStateFlow(0)
+    val poolStartMinutes: StateFlow<Int> = _poolStartMinutes.asStateFlow()
+    
+    private val _poolEndMinutes = MutableStateFlow(1440)
+    val poolEndMinutes: StateFlow<Int> = _poolEndMinutes.asStateFlow()
+    
+    private val _unlockReportCreation = MutableStateFlow(false)
+    val unlockReportCreation: StateFlow<Boolean> = _unlockReportCreation.asStateFlow()
+    
+    private val _unlockPlanCreation = MutableStateFlow(false)
+    val unlockPlanCreation: StateFlow<Boolean> = _unlockPlanCreation.asStateFlow()
+    
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
     
@@ -89,6 +101,26 @@ class SettingsViewModel(
             settingsRepository.notificationMode
                 .distinctUntilChanged()
                 .collect { _notificationMode.value = it }
+        }
+        viewModelScope.launch {
+            settingsRepository.poolStartMinutes
+                .distinctUntilChanged()
+                .collect { _poolStartMinutes.value = it }
+        }
+        viewModelScope.launch {
+            settingsRepository.poolEndMinutes
+                .distinctUntilChanged()
+                .collect { _poolEndMinutes.value = it }
+        }
+        viewModelScope.launch {
+            settingsRepository.unlockReportCreation
+                .distinctUntilChanged()
+                .collect { _unlockReportCreation.value = it }
+        }
+        viewModelScope.launch {
+            settingsRepository.unlockPlanCreation
+                .distinctUntilChanged()
+                .collect { _unlockPlanCreation.value = it }
         }
     }
     
@@ -187,5 +219,25 @@ class SettingsViewModel(
     
     fun clearTestMessageResult() {
         _testMessageResult.value = null
+    }
+    
+    fun setPoolStartMinutes(minutes: Int) {
+        _poolStartMinutes.value = minutes
+        settingsRepository.setPoolStartMinutes(minutes)
+    }
+    
+    fun setPoolEndMinutes(minutes: Int) {
+        _poolEndMinutes.value = minutes
+        settingsRepository.setPoolEndMinutes(minutes)
+    }
+    
+    fun setUnlockReportCreation(unlock: Boolean) {
+        _unlockReportCreation.value = unlock
+        settingsRepository.setUnlockReportCreation(unlock)
+    }
+    
+    fun setUnlockPlanCreation(unlock: Boolean) {
+        _unlockPlanCreation.value = unlock
+        settingsRepository.setUnlockPlanCreation(unlock)
     }
 } 

@@ -15,11 +15,15 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.launch
 import java.util.*
 import androidx.compose.ui.text.input.TextFieldValue
+import com.katapandroid.lazybones.data.SettingsRepository
+import com.katapandroid.lazybones.data.TimePoolManager
 
 class ReportFormViewModel(
     private val postRepository: PostRepository,
-    private val tagRepository: TagRepository
+    private val tagRepository: TagRepository,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
+    private val timePoolManager = TimePoolManager(settingsRepository)
     private val _content = MutableStateFlow("")
     val content: StateFlow<String> = _content.asStateFlow()
 
@@ -61,24 +65,15 @@ class ReportFormViewModel(
     }
     
     private suspend fun loadTodayReport() {
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        val todayStart = calendar.time
-        calendar.add(Calendar.DAY_OF_YEAR, 1)
-        calendar.add(Calendar.MILLISECOND, -1)
-        val todayEnd = calendar.time
+        val (poolStart, poolEnd) = timePoolManager.getCurrentPoolRange()
         
         val allPosts = postRepository.getAllPostsSync()
         val todayReport = allPosts.firstOrNull { post ->
             val postDate = post.date
-            val isToday = postDate >= todayStart && postDate <= todayEnd
+            val isInPool = postDate >= poolStart && postDate <= poolEnd
             val noChecklist = post.checklist.isEmpty()
             val hasGoodOrBad = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()
-            isToday && noChecklist && hasGoodOrBad
+            isInPool && noChecklist && hasGoodOrBad
         }
         
         // Если есть отчет за сегодня и локальные списки пустые, загружаем его пункты
@@ -105,25 +100,16 @@ class ReportFormViewModel(
     
     // Автоматически сохраняет черновик отчета при добавлении пункта
     suspend fun saveDraftReport(goodItems: List<String>, badItems: List<String>) {
-        // Проверяем, есть ли уже отчет за сегодня
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        val todayStart = calendar.time
-        calendar.add(Calendar.DAY_OF_YEAR, 1)
-        calendar.add(Calendar.MILLISECOND, -1)
-        val todayEnd = calendar.time
+        // Проверяем, есть ли уже отчет за текущий пул времени
+        val (poolStart, poolEnd) = timePoolManager.getCurrentPoolRange()
         
         val allPosts = postRepository.getAllPostsSync()
         val todayReport = allPosts.firstOrNull { post ->
             val postDate = post.date
-            val isToday = postDate >= todayStart && postDate <= todayEnd
+            val isInPool = postDate >= poolStart && postDate <= poolEnd
             val noChecklist = post.checklist.isEmpty()
             val hasGoodOrBad = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()
-            isToday && noChecklist && hasGoodOrBad
+            isInPool && noChecklist && hasGoodOrBad
         }
         
         if (todayReport != null) {
@@ -181,26 +167,17 @@ class ReportFormViewModel(
     }
 
     suspend fun saveReport(goodItems: List<String>, badItems: List<String>, onSaved: () -> Unit) {
-        // Проверяем, есть ли уже отчет за сегодня
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        val todayStart = calendar.time
-        calendar.add(Calendar.DAY_OF_YEAR, 1)
-        calendar.add(Calendar.MILLISECOND, -1)
-        val todayEnd = calendar.time
+        // Проверяем, есть ли уже отчет за текущий пул времени
+        val (poolStart, poolEnd) = timePoolManager.getCurrentPoolRange()
         
-        // Получаем все посты и ищем отчет за сегодня (без checklist, с good/bad items)
+        // Получаем все посты и ищем отчет за текущий пул времени (без checklist, с good/bad items)
         val allPosts = postRepository.getAllPostsSync()
         val todayReport = allPosts.firstOrNull { post ->
             val postDate = post.date
-            val isToday = postDate >= todayStart && postDate <= todayEnd
+            val isInPool = postDate >= poolStart && postDate <= poolEnd
             val noChecklist = post.checklist.isEmpty()
             val hasGoodOrBad = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()
-            isToday && noChecklist && hasGoodOrBad
+            isInPool && noChecklist && hasGoodOrBad
         }
         
         if (todayReport != null) {

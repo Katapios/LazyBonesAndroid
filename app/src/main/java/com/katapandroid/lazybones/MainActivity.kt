@@ -48,7 +48,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.katapandroid.lazybones.ui.MainViewModel
 import com.katapandroid.lazybones.ui.PlanScreen
-import com.katapandroid.lazybones.ui.ReportStatus
+// ReportStatus теперь в MainViewModel
 import com.katapandroid.lazybones.ui.ReportsScreen
 import com.katapandroid.lazybones.ui.SettingsScreen
 import com.katapandroid.lazybones.ui.theme.LazyBonesTheme
@@ -250,7 +250,6 @@ fun MainScreen(
     val goodCount = viewModel.goodCount.collectAsState().value
     val badCount = viewModel.badCount.collectAsState().value
     val reportStatus = viewModel.reportStatus.collectAsState().value
-    val timerTimeText = viewModel.timerTimeText.collectAsState().value
 
     Box(
         modifier = Modifier
@@ -272,10 +271,15 @@ fun MainScreen(
                 badCount = badCount,
                 modifier = Modifier.fillMaxWidth()
             )
-            Text("До конца: $timerTimeText", style = MaterialTheme.typography.bodyLarge)
+            val timerText = viewModel.timerText.collectAsState().value
+            Text(timerText, style = MaterialTheme.typography.bodyLarge)
+            val canCreateReport = viewModel.canCreateReport.collectAsState().value
+            val canCreatePlan = viewModel.canCreatePlan.collectAsState().value
             CreateButton(
                 onOpenReportForm = onOpenReportForm,
-                onOpenPlan = onOpenPlan
+                onOpenPlan = onOpenPlan,
+                canCreateReport = canCreateReport,
+                canCreatePlan = canCreatePlan
             )
         }
     }
@@ -294,7 +298,9 @@ fun CounterBox(count: Int, label: String, color: androidx.compose.ui.graphics.Co
 @Composable
 fun CreateButton(
     onOpenReportForm: () -> Unit,
-    onOpenPlan: () -> Unit
+    onOpenPlan: () -> Unit,
+    canCreateReport: Boolean = true,
+    canCreatePlan: Boolean = true
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
@@ -329,10 +335,11 @@ fun CreateButton(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
                         ),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        enabled = canCreateReport
                     ) {
                         Text(
-                            "Создать отчёт",
+                            if (canCreateReport) "Создать отчёт" else "Отчет заблокирован",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onPrimary
                         )
@@ -346,10 +353,11 @@ fun CreateButton(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
                         ),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        enabled = canCreatePlan
                     ) {
                         Text(
-                            "Создать план",
+                            if (canCreatePlan) "Создать план" else "План заблокирован",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onPrimary
                         )
@@ -408,22 +416,18 @@ fun GoodBadProgressBar(
     }
 }
 
-fun statusText(status: ReportStatus): String {
+@Composable
+fun statusText(status: com.katapandroid.lazybones.ui.ReportStatus): String {
     return when (status) {
-        ReportStatus.NOT_STARTED -> "Не начат"
-        ReportStatus.IN_PROGRESS -> "В процессе"
-        ReportStatus.DONE -> "Завершён"
+        com.katapandroid.lazybones.ui.ReportStatus.NOT_FILLED -> "Отчет не заполнен"
+        com.katapandroid.lazybones.ui.ReportStatus.IN_PROGRESS -> "В процессе"
+        com.katapandroid.lazybones.ui.ReportStatus.SAVED -> "Отчет сформирован"
+        com.katapandroid.lazybones.ui.ReportStatus.PUBLISHED -> "Отчет опубликован"
     }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun MainScreenPreview() {
-    LazyBonesTheme {
-        MainScreen(
-            viewModel = MainViewModel(koinViewModel()),
-            onOpenReportForm = {},
-            onOpenPlan = {}
-        )
-    }
+    // Preview requires ViewModel dependencies - disabled
 }

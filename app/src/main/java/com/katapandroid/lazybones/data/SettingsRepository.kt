@@ -31,6 +31,18 @@ class SettingsRepository(context: Context) {
     private val _notificationMode = MutableStateFlow(getNotificationMode())
     val notificationMode: Flow<Int> = _notificationMode.asStateFlow()
     
+    private val _poolStartMinutes = MutableStateFlow(getPoolStartMinutes())
+    val poolStartMinutes: Flow<Int> = _poolStartMinutes.asStateFlow()
+    
+    private val _poolEndMinutes = MutableStateFlow(getPoolEndMinutes())
+    val poolEndMinutes: Flow<Int> = _poolEndMinutes.asStateFlow()
+    
+    private val _unlockReportCreation = MutableStateFlow(getUnlockReportCreation())
+    val unlockReportCreation: Flow<Boolean> = _unlockReportCreation.asStateFlow()
+    
+    private val _unlockPlanCreation = MutableStateFlow(getUnlockPlanCreation())
+    val unlockPlanCreation: Flow<Boolean> = _unlockPlanCreation.asStateFlow()
+    
     // Getters
     fun getPhoneName(): String = prefs.getString(KEY_PHONE_NAME, "") ?: ""
     fun getTelegramToken(): String = prefs.getString(KEY_TELEGRAM_TOKEN, "") ?: ""
@@ -38,6 +50,10 @@ class SettingsRepository(context: Context) {
     fun getTelegramBotId(): String = prefs.getString(KEY_TELEGRAM_BOT_ID, "") ?: ""
     fun getNotificationsEnabled(): Boolean = prefs.getBoolean(KEY_NOTIFICATIONS_ENABLED, false)
     fun getNotificationMode(): Int = prefs.getInt(KEY_NOTIFICATION_MODE, 0)
+    fun getPoolStartMinutes(): Int = prefs.getInt(KEY_POOL_START_MINUTES, 0) // По умолчанию 00:00
+    fun getPoolEndMinutes(): Int = prefs.getInt(KEY_POOL_END_MINUTES, 1440) // По умолчанию 24:00 (1440 минут)
+    fun getUnlockReportCreation(): Boolean = prefs.getBoolean(KEY_UNLOCK_REPORT_CREATION, false)
+    fun getUnlockPlanCreation(): Boolean = prefs.getBoolean(KEY_UNLOCK_PLAN_CREATION, false)
     
     // Setters
     fun setPhoneName(name: String) {
@@ -76,6 +92,26 @@ class SettingsRepository(context: Context) {
         _notificationMode.value = mode
     }
     
+    fun setPoolStartMinutes(minutes: Int) {
+        prefs.edit().putInt(KEY_POOL_START_MINUTES, minutes).apply()
+        _poolStartMinutes.value = minutes
+    }
+    
+    fun setPoolEndMinutes(minutes: Int) {
+        prefs.edit().putInt(KEY_POOL_END_MINUTES, minutes).apply()
+        _poolEndMinutes.value = minutes
+    }
+    
+    fun setUnlockReportCreation(unlock: Boolean) {
+        prefs.edit().putBoolean(KEY_UNLOCK_REPORT_CREATION, unlock).apply()
+        _unlockReportCreation.value = unlock
+    }
+    
+    fun setUnlockPlanCreation(unlock: Boolean) {
+        prefs.edit().putBoolean(KEY_UNLOCK_PLAN_CREATION, unlock).apply()
+        _unlockPlanCreation.value = unlock
+    }
+    
     companion object {
         private const val KEY_PHONE_NAME = "phone_name"
         private const val KEY_TELEGRAM_TOKEN = "telegram_token"
@@ -83,5 +119,9 @@ class SettingsRepository(context: Context) {
         private const val KEY_TELEGRAM_BOT_ID = "telegram_bot_id"
         private const val KEY_NOTIFICATIONS_ENABLED = "notifications_enabled"
         private const val KEY_NOTIFICATION_MODE = "notification_mode"
+        private const val KEY_POOL_START_MINUTES = "pool_start_minutes"
+        private const val KEY_POOL_END_MINUTES = "pool_end_minutes"
+        private const val KEY_UNLOCK_REPORT_CREATION = "unlock_report_creation"
+        private const val KEY_UNLOCK_PLAN_CREATION = "unlock_plan_creation"
     }
 }

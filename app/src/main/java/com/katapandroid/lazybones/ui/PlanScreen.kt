@@ -37,6 +37,8 @@ import com.katapandroid.lazybones.data.PostRepository
 import com.katapandroid.lazybones.data.Post
 import com.katapandroid.lazybones.ui.ReportFormViewModel
 import org.koin.compose.koinInject
+import com.katapandroid.lazybones.data.SettingsRepository
+import com.katapandroid.lazybones.ui.MainViewModel
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.clickable
@@ -57,6 +59,7 @@ fun PlanScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val postRepository = koinInject<PostRepository>()
+    val mainViewModel = koinViewModel<MainViewModel>()
     var selectedTab by remember { mutableStateOf(initialTab) } // 0 = План, 1 = Отчет, 2 = Теги
     val tabTitles = listOf("План", "Отчет", "Теги")
 
@@ -77,13 +80,14 @@ fun PlanScreen(
             }
         }
         AnimatedVisibility(visible = selectedTab == 0, enter = fadeIn(), exit = fadeOut()) {
-            PlanTab(viewModel, postRepository, snackbarHostState, coroutineScope)
+            PlanTab(viewModel, postRepository, snackbarHostState, coroutineScope, mainViewModel)
         }
         AnimatedVisibility(visible = selectedTab == 1, enter = fadeIn(), exit = fadeOut()) {
             ReportFormTab(
                 viewModel = koinViewModel<ReportFormViewModel>(),
                 snackbarHostState = snackbarHostState,
-                coroutineScope = coroutineScope
+                coroutineScope = coroutineScope,
+                mainViewModel = mainViewModel
             )
         }
         AnimatedVisibility(visible = selectedTab == 2, enter = fadeIn(), exit = fadeOut()) {
@@ -98,7 +102,8 @@ private fun PlanTab(
     viewModel: PlanViewModel,
     postRepository: PostRepository,
     snackbarHostState: SnackbarHostState,
-    coroutineScope: CoroutineScope
+    coroutineScope: CoroutineScope,
+    mainViewModel: MainViewModel
 ) {
     val context = LocalContext.current
     val planItems by viewModel.planItems.collectAsState()
@@ -248,8 +253,15 @@ private fun PlanTab(
         }
         Spacer(Modifier.weight(1f))
         if (planItems.isNotEmpty()) {
+            val canCreatePlan = mainViewModel.canCreatePlan.collectAsState().value
             Button(
                 onClick = {
+                    if (!canCreatePlan) {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("Создание плана заблокировано. Используйте настройки для разблокировки.")
+                        }
+                        return@Button
+                    }
                     coroutineScope.launch {
                         try {
                             // Создаем копию списка перед операциями, чтобы избежать проблем с изменением Flow
@@ -285,9 +297,15 @@ private fun PlanTab(
                     .fillMaxWidth()
                     .padding(16.dp),
                 shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (canCreatePlan) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.errorContainer
+                ),
+                enabled = canCreatePlan
             ) {
-                Text("Сохранить план", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    if (canCreatePlan) "Сохранить план" else "План заблокирован",
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
         }
     }
@@ -555,7 +573,8 @@ private fun TagsTab(viewModel: PlanViewModel) {
 private fun ReportFormTab(
     viewModel: ReportFormViewModel,
     snackbarHostState: SnackbarHostState,
-    coroutineScope: CoroutineScope
+    coroutineScope: CoroutineScope,
+    mainViewModel: MainViewModel
 ) {
     val context = LocalContext.current
     
@@ -1150,8 +1169,15 @@ private fun ReportFormTab(
             Column(
                 modifier = Modifier.padding(20.dp)
             ) {
+                val canCreateReport = mainViewModel.canCreateReport.collectAsState().value
                 Button(
                     onClick = {
+                        if (!canCreateReport) {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Создание отчета заблокировано. Используйте настройки для разблокировки.")
+                            }
+                            return@Button
+                        }
                         // Сохраняем отчёт за сегодня с накопленными good/bad пунктами
                         // Пункты остаются на экране для дальнейшего редактирования
                         coroutineScope.launch {
@@ -1170,9 +1196,10 @@ private fun ReportFormTab(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
+                        containerColor = if (canCreateReport) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.errorContainer
                     ),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    enabled = canCreateReport
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1186,8 +1213,8 @@ private fun ReportFormTab(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "Сохранить отчёт", 
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            if (canCreateReport) "Сохранить отчёт" else "Отчет заблокирован", 
+                            color = if (canCreateReport) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onErrorContainer,
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium
                         )

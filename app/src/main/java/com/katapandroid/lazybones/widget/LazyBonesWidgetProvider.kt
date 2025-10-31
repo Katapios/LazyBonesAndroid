@@ -13,6 +13,9 @@ import com.katapandroid.lazybones.R
 import com.katapandroid.lazybones.data.LazyBonesDatabase
 import com.katapandroid.lazybones.data.Post
 import com.katapandroid.lazybones.data.PlanItem
+import com.katapandroid.lazybones.data.SettingsRepository
+import com.katapandroid.lazybones.data.TimePoolManager
+import com.katapandroid.lazybones.data.PoolStatus
 import kotlinx.coroutines.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -240,27 +243,20 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
                     }
                 }
 
-                // Фильтруем посты по сегодняшней дате
-                val calendar = Calendar.getInstance().apply {
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }
-                val todayStart = calendar.time
-                calendar.add(Calendar.DAY_OF_YEAR, 1)
-                calendar.add(Calendar.MILLISECOND, -1)
-                val todayEnd = calendar.time
+                // Фильтруем посты по текущему пулу времени
+                val settingsRepository = SettingsRepository(context)
+                val timePoolManager = TimePoolManager(settingsRepository)
+                val (poolStart, poolEnd) = timePoolManager.getCurrentPoolRange()
 
-                // Ищем только отчет на сегодня (good/bad items, без checklist)
+                // Ищем только отчет за текущий пул времени (good/bad items, без checklist)
                 // Good/bad всегда берутся из отчета, а не из плана
                 val todayReport = posts.firstOrNull { post ->
                     val postDate = post.date
-                    val isToday = postDate >= todayStart && postDate <= todayEnd
+                    val isInPool = postDate >= poolStart && postDate <= poolEnd
                     val noChecklist = post.checklist.isEmpty()
                     val hasGoodOrBad = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()
-                    Log.d("Widget", "Checking post: date=$postDate, isToday=$isToday, checklistSize=${post.checklist.size}, goodItems=${post.goodItems.size}, badItems=${post.badItems.size}")
-                    isToday && noChecklist && hasGoodOrBad
+                    Log.d("Widget", "Checking post: date=$postDate, isInPool=$isInPool, checklistSize=${post.checklist.size}, goodItems=${post.goodItems.size}, badItems=${post.badItems.size}")
+                    isInPool && noChecklist && hasGoodOrBad && !post.isDraft
                 }
 
                 Log.d("Widget", "Found report: ${todayReport != null}, current plan items: ${currentPlanItems.size}")
@@ -277,6 +273,30 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
                 val badCount = todayReport?.badItems?.size ?: 0
                 
                 Log.d("Widget", "Final counts: good=$goodCount, bad=$badCount")
+                
+                // Определяем статус отчета и таймер
+                val reportStatus = when {
+                    todayReport == null -> "Отчет не заполнен"
+                    todayReport.isDraft -> "В процессе"
+                    todayReport.published -> "Отчет опубликован"
+                    else -> "Отчет сформирован"
+                }
+                
+                val poolStatus = timePoolManager.getPoolStatus()
+                val timeUntilStart = timePoolManager.getTimeUntilPoolStart()
+                val timeUntilEnd = timePoolManager.getTimeUntilPoolEnd()
+                
+                val timerText = when (poolStatus) {
+                    PoolStatus.BEFORE_START -> {
+                        timeUntilStart?.let { formatTime(it) }?.let { "До начала пула: $it" } ?: ""
+                    }
+                    PoolStatus.ACTIVE -> {
+                        timeUntilEnd?.let { formatTime(it) }?.let { "До конца пула: $it" } ?: ""
+                    }
+                    PoolStatus.AFTER_END -> {
+                        timeUntilStart?.let { formatTime(it) }?.let { "До начала пула: $it" } ?: "Пул завершен"
+                    }
+                }
                 
                 // Мотивационный текст - используем Samsung AI для генерации, если доступен
                 val motivationText = try {
@@ -356,7 +376,9 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
                 Log.i("Widget", "✅ FINAL MOTIVATION TEXT: '$motivationText'")
                 Log.i("Widget", "===== WIDGET UPDATE END =====")
                 
-                updatedViews.setTextViewText(R.id.widget_motivation_text, motivationText)
+                // Объединяем мотивационный текст со статусом и таймером
+                val fullText = "$motivationText\n\n$reportStatus\n$timerText"
+                updatedViews.setTextViewText(R.id.widget_motivation_text, fullText)
                 updatedViews.setTextViewText(R.id.widget_good_count, goodCount.toString())
                 updatedViews.setTextViewText(R.id.widget_bad_count, badCount.toString())
                 
@@ -423,6 +445,14 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
                 appWidgetManager.updateAppWidget(appWidgetId, errorViews)
             }
         }
+    }
+    
+    private fun formatTime(millis: Long): String {
+        val totalSeconds = millis / 1000
+        val hours = totalSeconds / 3600
+        val minutes = (totalSeconds % 3600) / 60
+        val seconds = totalSeconds % 60
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds)
     }
 }
 
