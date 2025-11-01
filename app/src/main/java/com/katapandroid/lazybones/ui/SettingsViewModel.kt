@@ -37,11 +37,14 @@ class SettingsViewModel(
     private val _notificationMode = MutableStateFlow(0)
     val notificationMode: StateFlow<Int> = _notificationMode.asStateFlow()
     
-    private val _poolStartMinutes = MutableStateFlow(0)
+    private val _poolStartMinutes = MutableStateFlow(360) // По умолчанию 06:00
     val poolStartMinutes: StateFlow<Int> = _poolStartMinutes.asStateFlow()
     
-    private val _poolEndMinutes = MutableStateFlow(1440)
+    private val _poolEndMinutes = MutableStateFlow(1080) // По умолчанию 18:00
     val poolEndMinutes: StateFlow<Int> = _poolEndMinutes.asStateFlow()
+    
+    private val _poolValidationError = MutableStateFlow<String?>(null)
+    val poolValidationError: StateFlow<String?> = _poolValidationError.asStateFlow()
     
     private val _unlockReportCreation = MutableStateFlow(false)
     val unlockReportCreation: StateFlow<Boolean> = _unlockReportCreation.asStateFlow()
@@ -222,13 +225,41 @@ class SettingsViewModel(
     }
     
     fun setPoolStartMinutes(minutes: Int) {
-        _poolStartMinutes.value = minutes
-        settingsRepository.setPoolStartMinutes(minutes)
+        // Ограничиваем диапазон: 06:00 (360) - 23:00 (1380)
+        val validatedMinutes = minutes.coerceIn(360, 1380)
+        val timePoolManager = com.katapandroid.lazybones.data.TimePoolManager(settingsRepository)
+        val currentEnd = _poolEndMinutes.value
+        val (isValid, errorMessage) = timePoolManager.validatePoolSettings(validatedMinutes, currentEnd)
+        
+        if (isValid) {
+            _poolStartMinutes.value = validatedMinutes
+            settingsRepository.setPoolStartMinutes(validatedMinutes)
+            _poolValidationError.value = null
+        } else {
+            _poolValidationError.value = errorMessage
+            // Не сохраняем невалидное значение, но показываем ошибку
+        }
     }
     
     fun setPoolEndMinutes(minutes: Int) {
-        _poolEndMinutes.value = minutes
-        settingsRepository.setPoolEndMinutes(minutes)
+        // Ограничиваем диапазон: 06:00 (360) - 23:00 (1380)
+        val validatedMinutes = minutes.coerceIn(360, 1380)
+        val timePoolManager = com.katapandroid.lazybones.data.TimePoolManager(settingsRepository)
+        val currentStart = _poolStartMinutes.value
+        val (isValid, errorMessage) = timePoolManager.validatePoolSettings(currentStart, validatedMinutes)
+        
+        if (isValid) {
+            _poolEndMinutes.value = validatedMinutes
+            settingsRepository.setPoolEndMinutes(validatedMinutes)
+            _poolValidationError.value = null
+        } else {
+            _poolValidationError.value = errorMessage
+            // Не сохраняем невалидное значение, но показываем ошибку
+        }
+    }
+    
+    fun clearPoolValidationError() {
+        _poolValidationError.value = null
     }
     
     fun setUnlockReportCreation(unlock: Boolean) {

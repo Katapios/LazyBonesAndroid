@@ -30,8 +30,13 @@ fun SettingsScreen(viewModel: SettingsViewModel = koinViewModel()) {
     val notificationMode by viewModel.notificationMode.collectAsState()
     val poolStartMinutes by viewModel.poolStartMinutes.collectAsState()
     val poolEndMinutes by viewModel.poolEndMinutes.collectAsState()
+    val poolValidationError by viewModel.poolValidationError.collectAsState()
     val unlockReportCreation by viewModel.unlockReportCreation.collectAsState()
     val unlockPlanCreation by viewModel.unlockPlanCreation.collectAsState()
+    
+    // Вычисляем длительность пула
+    val poolDurationHours = (poolEndMinutes - poolStartMinutes) / 60
+    val poolDurationMinutes = (poolEndMinutes - poolStartMinutes) % 60
     val isLoading by viewModel.isLoading.collectAsState()
     val testMessageResult by viewModel.testMessageResult.collectAsState()
     val phoneNameSaveStatus by viewModel.phoneNameSaveStatus.collectAsState()
@@ -288,48 +293,102 @@ fun SettingsScreen(viewModel: SettingsViewModel = koinViewModel()) {
                     color = MaterialTheme.colorScheme.surface
                 ) {
                     Column(Modifier.padding(16.dp)) {
-                        Text("Начало пула", style = MaterialTheme.typography.bodyMedium)
+                        Text("Начало пула (не раньше 06:00)", style = MaterialTheme.typography.bodyMedium)
                         Spacer(Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = poolStartTime,
-                            onValueChange = { timeStr ->
-                                // Парсим время в формате ЧЧ:ММ и конвертируем в минуты
-                                try {
-                                    val parts = timeStr.split(":")
-                                    if (parts.size == 2) {
-                                        val hours = parts[0].toInt().coerceIn(0, 23)
-                                        val minutes = parts[1].toInt().coerceIn(0, 59)
-                                        viewModel.setPoolStartMinutes(hours * 60 + minutes)
-                                    }
-                                } catch (e: Exception) {
-                                    // Игнорируем некорректный ввод
-                                }
-                            },
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("00:00") },
-                            label = { Text("Начало (ЧЧ:ММ)") }
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Выбор часов (06-23)
+                            TimePickerSpinner(
+                                label = "Час",
+                                value = poolStartMinutes / 60,
+                                onValueChange = { hours ->
+                                    val minutes = poolStartMinutes % 60
+                                    viewModel.setPoolStartMinutes(hours * 60 + minutes)
+                                },
+                                range = 6..23,
+                                modifier = Modifier.weight(1f)
+                            )
+                            // Выбор минут (00-59)
+                            TimePickerSpinner(
+                                label = "Мин",
+                                value = poolStartMinutes % 60,
+                                onValueChange = { mins ->
+                                    val hours = poolStartMinutes / 60
+                                    viewModel.setPoolStartMinutes(hours * 60 + mins)
+                                },
+                                range = 0..59,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        Text(
+                            text = poolStartTime,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 8.dp)
                         )
+                        
+                        Spacer(Modifier.height(16.dp))
+                        
+                        Text("Конец пула (не позже 23:00)", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Выбор часов (06-23)
+                            TimePickerSpinner(
+                                label = "Час",
+                                value = poolEndMinutes / 60,
+                                onValueChange = { hours ->
+                                    val minutes = poolEndMinutes % 60
+                                    viewModel.setPoolEndMinutes(hours * 60 + minutes)
+                                },
+                                range = 6..23,
+                                modifier = Modifier.weight(1f)
+                            )
+                            // Выбор минут (00-59)
+                            TimePickerSpinner(
+                                label = "Мин",
+                                value = poolEndMinutes % 60,
+                                onValueChange = { mins ->
+                                    val hours = poolEndMinutes / 60
+                                    viewModel.setPoolEndMinutes(hours * 60 + mins)
+                                },
+                                range = 0..59,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        Text(
+                            text = poolEndTime,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                        
+                        // Показываем длительность пула
                         Spacer(Modifier.height(12.dp))
-                        Text("Конец пула", style = MaterialTheme.typography.bodyMedium)
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = poolEndTime,
-                            onValueChange = { timeStr ->
-                                try {
-                                    val parts = timeStr.split(":")
-                                    if (parts.size == 2) {
-                                        val hours = parts[0].toInt().coerceIn(0, 23)
-                                        val minutes = parts[1].toInt().coerceIn(0, 59)
-                                        viewModel.setPoolEndMinutes(hours * 60 + minutes)
-                                    }
-                                } catch (e: Exception) {
-                                    // Игнорируем некорректный ввод
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("24:00") },
-                            label = { Text("Конец (ЧЧ:ММ)") }
+                        Text(
+                            text = "Длительность пула: ${poolDurationHours}ч ${poolDurationMinutes}м" +
+                                    if (poolDurationHours * 60 + poolDurationMinutes > 720) " (максимум 12 часов)" else "",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (poolDurationHours * 60 + poolDurationMinutes > 720) 
+                                MaterialTheme.colorScheme.error 
+                            else 
+                                MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp)
                         )
+                        
+                        // Показываем ошибку валидации
+                        if (poolValidationError != null) {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = poolValidationError ?: "",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
                         Spacer(Modifier.height(16.dp))
                         Text("Разблокировка создания", style = MaterialTheme.typography.bodyMedium)
                         Spacer(Modifier.height(8.dp))
@@ -343,6 +402,62 @@ fun SettingsScreen(viewModel: SettingsViewModel = koinViewModel()) {
                             Switch(checked = unlockPlanCreation, onCheckedChange = { viewModel.setUnlockPlanCreation(it) })
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimePickerSpinner(
+    label: String,
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    range: IntRange,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = {
+                        val newValue = if (value <= range.first) range.last else value - 1
+                        onValueChange(newValue.coerceIn(range))
+                    },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Text("-", style = MaterialTheme.typography.titleLarge)
+                }
+                Text(
+                    text = String.format("%02d", value.coerceIn(range)),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                IconButton(
+                    onClick = {
+                        val newValue = if (value >= range.last) range.first else value + 1
+                        onValueChange(newValue.coerceIn(range))
+                    },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Text("+", style = MaterialTheme.typography.titleLarge)
                 }
             }
         }

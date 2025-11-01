@@ -50,8 +50,8 @@ class SettingsRepository(context: Context) {
     fun getTelegramBotId(): String = prefs.getString(KEY_TELEGRAM_BOT_ID, "") ?: ""
     fun getNotificationsEnabled(): Boolean = prefs.getBoolean(KEY_NOTIFICATIONS_ENABLED, false)
     fun getNotificationMode(): Int = prefs.getInt(KEY_NOTIFICATION_MODE, 0)
-    fun getPoolStartMinutes(): Int = prefs.getInt(KEY_POOL_START_MINUTES, 0) // По умолчанию 00:00
-    fun getPoolEndMinutes(): Int = prefs.getInt(KEY_POOL_END_MINUTES, 1440) // По умолчанию 24:00 (1440 минут)
+    fun getPoolStartMinutes(): Int = prefs.getInt(KEY_POOL_START_MINUTES, 360) // По умолчанию 06:00 (360 минут)
+    fun getPoolEndMinutes(): Int = prefs.getInt(KEY_POOL_END_MINUTES, 1080) // По умолчанию 18:00 (1080 минут, 12 часов от начала)
     fun getUnlockReportCreation(): Boolean = prefs.getBoolean(KEY_UNLOCK_REPORT_CREATION, false)
     fun getUnlockPlanCreation(): Boolean = prefs.getBoolean(KEY_UNLOCK_PLAN_CREATION, false)
     
