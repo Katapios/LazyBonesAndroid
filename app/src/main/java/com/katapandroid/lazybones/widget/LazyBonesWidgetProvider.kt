@@ -282,11 +282,12 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
                     else -> "Отчет сформирован"
                 }
                 
-                val poolStatus = timePoolManager.getPoolStatus()
+                // Получаем статус пула и таймер
+                val poolStatusForTimer = timePoolManager.getPoolStatus()
                 val timeUntilStart = timePoolManager.getTimeUntilPoolStart()
                 val timeUntilEnd = timePoolManager.getTimeUntilPoolEnd()
                 
-                val timerText = when (poolStatus) {
+                val timerText = when (poolStatusForTimer) {
                     PoolStatus.BEFORE_START -> {
                         timeUntilStart?.let { formatTime(it) }?.let { "До начала пула: $it" } ?: ""
                     }
@@ -298,9 +299,12 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
                     }
                 }
                 
-                // Мотивационный текст - используем Samsung AI для генерации, если доступен
+                // Мотивационный текст - зависит от статуса пула
                 val motivationText = try {
-                    when {
+                    if (poolStatusForTimer != PoolStatus.ACTIVE) {
+                        // До начала или после конца пула
+                        "Отдыхай, LABотряс! Не пришло твое время"
+                    } else when {
                         currentPlanItems.isNotEmpty() -> {
                             // Генерируем мотивационную фразу с пунктом плана
                             val randomItem = currentPlanItems.random().text
