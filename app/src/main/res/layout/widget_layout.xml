@@ -1,106 +1,139 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/white"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:background="#FF000000"
+    android:padding="12dp">
 
-    <!-- Мотивационный текст (кликабельный для обновления) -->
+    <!-- Лозунг сверху - крупнее -->
     <TextView
         android:id="@+id/widget_motivation_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Загрузка..."
-        android:textSize="16sp"
+        android:textSize="18sp"
         android:textStyle="bold"
-        android:textColor="@android:color/black"
-        android:paddingBottom="12dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:background="?android:attr/selectableItemBackground" />
+        android:textColor="#FFFFFF"
+        android:padding="8dp"
+        android:layout_marginBottom="12dp"
+        android:gravity="center" />
 
-    <!-- Good/Bad счетчики -->
+    <!-- Основная часть: Good слева, Статус по центру (2 строки), Bad справа -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:orientation="horizontal"
-        android:gravity="center"
-        android:paddingBottom="12dp">
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
 
+        <!-- Good - крупный, слева -->
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center">
-
+            
             <TextView
                 android:id="@+id/widget_good_count"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="0"
-                android:textSize="32sp"
+                android:textSize="48sp"
                 android:textStyle="bold"
                 android:textColor="#4CAF50" />
-
+            
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Good"
                 android:textSize="14sp"
-                android:textColor="#4CAF50" />
+                android:textColor="#CCCCCC"
+                android:layout_marginTop="4dp" />
         </LinearLayout>
 
+        <!-- Статус по центру - 2 строки, крупнее -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:gravity="center">
+            android:gravity="center"
+            android:paddingHorizontal="8dp">
+            
+            <TextView
+                android:id="@+id/widget_status_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:gravity="center"
+                android:maxLines="2"
+                android:ellipsize="end" />
+            
+            <TextView
+                android:id="@+id/widget_timer_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textSize="14sp"
+                android:textColor="#AAAAAA"
+                android:gravity="center"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
 
+        <!-- Bad - крупный, справа -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+            
             <TextView
                 android:id="@+id/widget_bad_count"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="0"
-                android:textSize="32sp"
+                android:textSize="48sp"
                 android:textStyle="bold"
                 android:textColor="#F44336" />
-
+            
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Bad"
                 android:textSize="14sp"
-                android:textColor="#F44336" />
+                android:textColor="#CCCCCC"
+                android:layout_marginTop="4dp" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Прогресс бар - используем фиксированные размеры, так как RemoteViews не поддерживает динамический layout_weight -->
+    <!-- Прогресс-бар -->
     <LinearLayout
         android:id="@+id/widget_progress_container"
         android:layout_width="match_parent"
-        android:layout_height="8dp"
+        android:layout_height="6dp"
         android:orientation="horizontal"
-        android:background="#E0E0E0"
-        android:layout_marginBottom="12dp">
-
+        android:background="#33FFFFFF"
+        android:layout_marginBottom="8dp">
+        
         <TextView
             android:id="@+id/widget_progress_good"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="50"
-            android:background="#4CAF50"
-            android:minWidth="1dp" />
-
+            android:background="#4CAF50" />
+        
         <TextView
             android:id="@+id/widget_progress_bad"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="50"
-            android:background="#F44336"
-            android:minWidth="1dp" />
+            android:background="#F44336" />
     </LinearLayout>
 
     <!-- Кнопка открытия приложения -->
@@ -109,11 +142,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Открыть приложение"
-        android:textColor="@android:color/white"
-        android:textSize="14sp"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp"
         android:textStyle="bold"
         android:gravity="center"
         android:padding="12dp"
-        android:background="#4CAF50" />
+        android:background="#4CAF50"
+        android:layout_marginTop="8dp" />
 
 </LinearLayout>

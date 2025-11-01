@@ -55,6 +55,10 @@ class SettingsRepository(context: Context) {
     fun getUnlockReportCreation(): Boolean = prefs.getBoolean(KEY_UNLOCK_REPORT_CREATION, false)
     fun getUnlockPlanCreation(): Boolean = prefs.getBoolean(KEY_UNLOCK_PLAN_CREATION, false)
     
+    // Настройки виджета
+    fun getWidgetTheme(widgetId: Int): Int = prefs.getInt("${KEY_WIDGET_THEME}_$widgetId", 0) // 0 = черный, 1 = белый
+    fun getWidgetOpacity(widgetId: Int): Int = prefs.getInt("${KEY_WIDGET_OPACITY}_$widgetId", 100) // 0-100
+    
     // Setters
     fun setPhoneName(name: String) {
         android.util.Log.d("SettingsRepository", "Setting phone name to: '$name' (current: '${_phoneName.value}')")
@@ -112,6 +116,15 @@ class SettingsRepository(context: Context) {
         _unlockPlanCreation.value = unlock
     }
     
+    // Настройки виджета
+    fun setWidgetTheme(widgetId: Int, theme: Int) {
+        prefs.edit().putInt("${KEY_WIDGET_THEME}_$widgetId", theme).apply()
+    }
+    
+    fun setWidgetOpacity(widgetId: Int, opacity: Int) {
+        prefs.edit().putInt("${KEY_WIDGET_OPACITY}_$widgetId", opacity.coerceIn(20, 100)).apply()
+    }
+    
     companion object {
         private const val KEY_PHONE_NAME = "phone_name"
         private const val KEY_TELEGRAM_TOKEN = "telegram_token"
@@ -123,5 +136,7 @@ class SettingsRepository(context: Context) {
         private const val KEY_POOL_END_MINUTES = "pool_end_minutes"
         private const val KEY_UNLOCK_REPORT_CREATION = "unlock_report_creation"
         private const val KEY_UNLOCK_PLAN_CREATION = "unlock_plan_creation"
+        private const val KEY_WIDGET_THEME = "widget_theme"
+        private const val KEY_WIDGET_OPACITY = "widget_opacity"
     }
 }
