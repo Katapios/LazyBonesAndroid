@@ -267,18 +267,19 @@ private fun PlanTab(
                             // Создаем копию списка перед операциями, чтобы избежать проблем с изменением Flow
                             val itemsList = planItems.toList()
                             val checklist = itemsList.map { it.text }
-                            val goodItems = itemsList.filter { completedItems.contains(it.id) }.map { it.text }
-                            val badItems = itemsList.filter { !completedItems.contains(it.id) }.map { it.text }
+                            // Сохраняем план БЕЗ оценки (только checklist, без goodItems/badItems)
+                            // Оценку можно будет сделать позже в разделе "Отчеты"
                             val post = Post(
                                 date = java.util.Date(),
                                 content = "План на день",
                                 checklist = checklist,
                                 voiceNotes = listOf(),
                                 published = false,
-                                goodItems = goodItems,
-                                badItems = badItems,
-                                goodCount = goodItems.size,
-                                badCount = badItems.size
+                                isDraft = false,
+                                goodItems = emptyList(), // Оценка будет сделана позже
+                                badItems = emptyList(),
+                                goodCount = 0,
+                                badCount = 0
                             )
                             postRepository.insert(post)
                             // Очищаем все пункты плана после сохранения
@@ -286,7 +287,7 @@ private fun PlanTab(
                             completedItems = emptySet()
                             // Обновляем виджет
                             com.katapandroid.lazybones.widget.LazyBonesWidgetProvider.updateAllWidgets(context)
-                            snackbarHostState.showSnackbar("План сохранен")
+                            snackbarHostState.showSnackbar("План сохранен. Оцените его позже в разделе \"Отчеты\"")
                         } catch (e: Exception) {
                             Log.e("PlanScreen", "Error saving plan", e)
                             snackbarHostState.showSnackbar("Ошибка при сохранении плана")
