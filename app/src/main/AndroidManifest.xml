@@ -28,6 +28,16 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".widget.WidgetConfigureActivity"
+            android:exported="true"
+            android:label="@string/widget_configure_title"
+            android:theme="@style/Theme.LazyBones">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <receiver
             android:name=".widget.LazyBonesWidgetProvider"
             android:exported="true"
