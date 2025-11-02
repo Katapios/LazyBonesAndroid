@@ -10,6 +10,5 @@
     android:description="@string/widget_description"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
-    android:configure="com.katapandroid.lazybones.widget.WidgetConfigureActivity"
     android:targetCellWidth="2"
     android:targetCellHeight="2" />

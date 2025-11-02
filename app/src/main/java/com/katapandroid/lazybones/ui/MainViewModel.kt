@@ -65,17 +65,21 @@ class MainViewModel(
     
     private fun updateReportStatus(posts: List<com.katapandroid.lazybones.data.Post>, unlockReport: Boolean, unlockPlan: Boolean) {
         val (poolStart, poolEnd) = timePoolManager.getCurrentPoolRange()
-        
-        // Ищем отчет за текущий пул времени
-        val todayReport = posts.firstOrNull { post ->
+
+        // Отчеты за текущий пул (только отчеты без checklist, с пунктами good/bad)
+        val reportsInPool = posts.filter { post ->
             val postDate = post.date
             val isInPool = postDate >= poolStart && postDate <= poolEnd
             val noChecklist = post.checklist.isEmpty()
             val hasGoodOrBad = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()
-            isInPool && noChecklist && hasGoodOrBad && !post.isDraft
+            isInPool && noChecklist && hasGoodOrBad
         }
-        
-        // Ищем план за текущий пул времени (посты с checklist)
+
+        val publishedReport = reportsInPool.firstOrNull { !it.isDraft && it.published }
+        val savedReport = reportsInPool.firstOrNull { !it.isDraft && !it.published }
+        val draftReport = reportsInPool.firstOrNull { it.isDraft }
+
+        // План за текущий пул (посты с checklist)
         val todayPlan = posts.firstOrNull { post ->
             val postDate = post.date
             val isInPool = postDate >= poolStart && postDate <= poolEnd
@@ -83,23 +87,24 @@ class MainViewModel(
             isInPool && hasChecklist
         }
 
-        // Используем данные только из отчета
-        _goodCount.value = todayReport?.goodItems?.size ?: 0
-        _badCount.value = todayReport?.badItems?.size ?: 0
-        
-        // Определяем статус отчета
+        // Счетчики берем из приоритетного отчета: опубликованный -> сохраненный -> черновик
+        val countersSource = publishedReport ?: savedReport ?: draftReport
+        _goodCount.value = countersSource?.goodItems?.size ?: 0
+        _badCount.value = countersSource?.badItems?.size ?: 0
+
+        // Статус отчета по приоритету
         _reportStatus.value = when {
-            todayReport == null -> ReportStatus.NOT_FILLED
-            todayReport.isDraft -> ReportStatus.IN_PROGRESS
-            todayReport.published -> ReportStatus.PUBLISHED
-            else -> ReportStatus.SAVED
+            publishedReport != null -> ReportStatus.PUBLISHED
+            savedReport != null -> ReportStatus.SAVED
+            draftReport != null -> ReportStatus.IN_PROGRESS
+            else -> ReportStatus.NOT_FILLED
         }
-        
-        // Проверяем возможность создания отчета/плана
+
+        // Возможность создания отчета/плана
         val isInPoolTime = timePoolManager.isInPoolTime()
-        val reportPublished = todayReport?.published == true
+        val reportPublished = publishedReport != null
         val planPublished = todayPlan?.published == true
-        
+
         _canCreateReport.value = (isInPoolTime && (!reportPublished || unlockReport))
         _canCreatePlan.value = (isInPoolTime && (!planPublished || unlockPlan))
     }

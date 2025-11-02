@@ -4,6 +4,7 @@
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
     <application
         android:name=".LazyBonesApp"
@@ -27,19 +28,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".widget.WidgetConfigureActivity"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.LazyBones"
-            android:launchMode="singleTask"
-            android:taskAffinity=""
-            android:excludeFromRecents="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
-            </intent-filter>
-        </activity>
-
         <receiver
             android:name=".widget.LazyBonesWidgetProvider"
             android:exported="true"
@@ -51,19 +39,6 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/app_widget_info" />
-        </receiver>
-
-        <receiver
-            android:name=".widget.LazyBonesWidgetProviderNarrow"
-            android:exported="true"
-            android:enabled="true"
-            android:permission="android.permission.BIND_APPWIDGET">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/app_widget_info_narrow" />
         </receiver>
 
         <receiver

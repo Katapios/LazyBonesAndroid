@@ -69,10 +69,9 @@ dependencies {
     implementation(libs.room.ktx)
     kapt(libs.room.compiler)
 
-    // Retrofit/OkHttp
-    implementation(libs.retrofit)
+    // OkHttp (used by TelegramService)
     implementation(libs.okhttp)
-    implementation(libs.retrofit.gson)
+    implementation("com.google.code.gson:gson:2.10.1")
 
     // ExoPlayer
     implementation(libs.exoplayer)
@@ -84,8 +83,7 @@ dependencies {
     // WorkManager
     implementation(libs.work.runtime.ktx)
 
-    // Glance (App Widgets)
-    implementation(libs.glance.appwidget)
+    // Glance (not used) — removed
 
     // WindowManager (foldables)
     implementation(libs.window)
@@ -96,15 +94,10 @@ dependencies {
     implementation("io.insert-koin:koin-android:3.5.3")
     implementation("io.insert-koin:koin-androidx-compose:3.5.3")
     implementation("androidx.navigation:navigation-compose:2.7.7")
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test:core:1.5.0")
-    androidTestImplementation("androidx.test:runner:1.5.2")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    // test deps via libs above; keep Room testing
     androidTestImplementation("androidx.room:room-testing:2.6.1")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.material:material-icons-core")
-    implementation("androidx.compose.material:material-icons-extended")
 }
 
 configurations.all {

@@ -15,7 +15,6 @@ import com.katapandroid.lazybones.data.PlanItem
 import com.katapandroid.lazybones.data.SettingsRepository
 import com.katapandroid.lazybones.data.TimePoolManager
 import com.katapandroid.lazybones.data.PoolStatus
-import com.katapandroid.lazybones.widget.WidgetConfigureActivity
 import kotlinx.coroutines.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -202,25 +201,29 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
                 val timePoolManager = TimePoolManager(settingsRepository)
                 val (poolStart, poolEnd) = timePoolManager.getCurrentPoolRange()
 
-                // Ищем отчет за текущий пул времени
-                val todayReport = posts.firstOrNull { post ->
+                // Отчеты за текущий пул (без checklist, но с пунктами good/bad), учитываем и черновики
+                val reportsInPool = posts.filter { post ->
                     val postDate = post.date
                     val isInPool = postDate >= poolStart && postDate <= poolEnd
                     val noChecklist = post.checklist.isEmpty()
                     val hasGoodOrBad = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()
-                    isInPool && noChecklist && hasGoodOrBad && !post.isDraft
+                    isInPool && noChecklist && hasGoodOrBad
                 }
+                val publishedReport = reportsInPool.firstOrNull { !it.isDraft && it.published }
+                val savedReport = reportsInPool.firstOrNull { !it.isDraft && !it.published }
+                val draftReport = reportsInPool.firstOrNull { it.isDraft }
 
-                // Получаем счетчики из отчета
-                val goodCount = todayReport?.goodItems?.size ?: 0
-                val badCount = todayReport?.badItems?.size ?: 0
+                // Счетчики берем с приоритетом: опубликованный → сохраненный → черновик
+                val countersSource = publishedReport ?: savedReport ?: draftReport
+                val goodCount = countersSource?.goodItems?.size ?: 0
+                val badCount = countersSource?.badItems?.size ?: 0
 
                 // Определяем статус отчета
                 val reportStatus = when {
-                    todayReport == null -> "Отчет не заполнен"
-                    todayReport.isDraft -> "В процессе"
-                    todayReport.published -> "Отчет опубликован"
-                    else -> "Отчет сформирован"
+                    publishedReport != null -> "Отчет опубликован"
+                    savedReport != null -> "Отчет сформирован"
+                    draftReport != null -> "В процессе"
+                    else -> "Отчет не заполнен"
                 }
 
                 // Получаем статус пула и таймер
