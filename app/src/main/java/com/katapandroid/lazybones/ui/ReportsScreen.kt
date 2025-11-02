@@ -1,5 +1,8 @@
 package com.katapandroid.lazybones.ui
 
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -235,22 +238,67 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 16.dp)
                 )
+                val telegramLoading by viewModel.telegramLoading.collectAsState()
+                val telegramError by viewModel.telegramError.collectAsState()
+                val ctx = androidx.compose.ui.platform.LocalContext.current
                 Row(
                     Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedButton(onClick = { /* обновить */ }, modifier = Modifier.weight(1f)) {
+                    OutlinedButton(onClick = { viewModel.refreshTelegramMessages() }, modifier = Modifier.weight(1f), enabled = !telegramLoading) {
                         Icon(
                             Icons.Default.Done,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(Modifier.width(4.dp))
-                        Text("Обновить")
+                        Text(if (telegramLoading) "Обновление..." else "Обновить")
                     }
-                    OutlinedButton(onClick = { /* в группу */ }, modifier = Modifier.weight(1f)) {
+                    val coroutineScope = rememberCoroutineScope()
+                    OutlinedButton(onClick = {
+                        coroutineScope.launch {
+                            try {
+                                val res = viewModel.resolveGroupLink()
+                                res.fold(
+                                    onSuccess = { link ->
+                                        // Используем Activity для запуска Intent
+                                        val activity = ctx as? ComponentActivity
+                                        if (activity != null) {
+                                            try {
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
+                                                activity.startActivity(intent)
+                                            } catch (e: Exception) {
+                                                android.util.Log.e("ReportsScreen", "Error: ${e.message}")
+                                                // Пробуем через createChooser
+                                                try {
+                                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
+                                                    val chooser = Intent.createChooser(intent, "Открыть группу")
+                                                    activity.startActivity(chooser)
+                                                } catch (e2: Exception) {
+                                                    android.util.Log.e("ReportsScreen", "Error with chooser: ${e2.message}")
+                                                }
+                                            }
+                                        } else {
+                                            // Если не Activity, используем Context с флагом
+                                            try {
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link)).apply {
+                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                }
+                                                ctx.startActivity(intent)
+                                            } catch (e: Exception) {
+                                                android.util.Log.e("ReportsScreen", "Error: ${e.message}")
+                                            }
+                                        }
+                                    },
+                                    onFailure = { }
+                                )
+                            } catch (e: Exception) {
+                                android.util.Log.e("ReportsScreen", "Error resolving link: ${e.message}")
+                            }
+                        }
+                    }, modifier = Modifier.weight(1f)) {
                         Icon(
                             Icons.Default.Send,
                             contentDescription = null,
@@ -258,6 +306,21 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                         )
                         Spacer(Modifier.width(4.dp))
                         Text("В группу")
+                    }
+                }
+                telegramError?.let { err: String ->
+                    Surface(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(err, color = MaterialTheme.colorScheme.onErrorContainer)
+                            Spacer(Modifier.weight(1f))
+                            TextButton(onClick = { viewModel.clearTelegramError() }) { Text("✕", color = MaterialTheme.colorScheme.onErrorContainer) }
+                        }
                     }
                 }
                 TelegramReportCard()
@@ -518,5 +581,42 @@ private fun ReportCard(
 
 @Composable
 private fun TelegramReportCard() {
+    val viewModel: ReportsViewModel = koinViewModel()
+    val messages by viewModel.telegramMessages.collectAsState()
+    val dateFormat = remember { java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.getDefault()) }
 
+    if (messages.isEmpty()) {
+        Text(
+            text = "Нет новых сообщений",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 8.dp)
+        )
+        return
+    }
+
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        messages.forEach { msg ->
+            Surface(
+                Modifier
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Text(
+                        text = dateFormat.format(java.util.Date(msg.dateSeconds * 1000)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = msg.text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+    }
 }

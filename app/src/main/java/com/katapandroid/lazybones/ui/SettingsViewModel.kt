@@ -31,6 +31,7 @@ class SettingsViewModel(
     private val _telegramBotId = MutableStateFlow("")
     val telegramBotId: StateFlow<String> = _telegramBotId.asStateFlow()
     
+    
     private val _notificationsEnabled = MutableStateFlow(false)
     val notificationsEnabled: StateFlow<Boolean> = _notificationsEnabled.asStateFlow()
     
@@ -143,6 +144,7 @@ class SettingsViewModel(
         _telegramBotId.value = botId
     }
     
+    
     fun setNotificationsEnabled(enabled: Boolean) {
         _notificationsEnabled.value = enabled
         // Сохраняем настройку в репозиторий
@@ -195,6 +197,7 @@ class SettingsViewModel(
         settingsRepository.setTelegramToken(_telegramToken.value)
         settingsRepository.setTelegramChatId(_telegramChatId.value)
         settingsRepository.setTelegramBotId(_telegramBotId.value)
+        
     }
     
     fun testTelegramConnection() {

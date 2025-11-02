@@ -25,6 +25,10 @@ class SettingsRepository(context: Context) {
     private val _telegramBotId = MutableStateFlow(getTelegramBotId())
     val telegramBotId: Flow<String> = _telegramBotId.asStateFlow()
     
+    private val _telegramLastUpdateId = MutableStateFlow(getTelegramLastUpdateId())
+    val telegramLastUpdateId: Flow<Long> = _telegramLastUpdateId.asStateFlow()
+    
+    
     private val _notificationsEnabled = MutableStateFlow(getNotificationsEnabled())
     val notificationsEnabled: Flow<Boolean> = _notificationsEnabled.asStateFlow()
     
@@ -48,6 +52,7 @@ class SettingsRepository(context: Context) {
     fun getTelegramToken(): String = prefs.getString(KEY_TELEGRAM_TOKEN, "") ?: ""
     fun getTelegramChatId(): String = prefs.getString(KEY_TELEGRAM_CHAT_ID, "") ?: ""
     fun getTelegramBotId(): String = prefs.getString(KEY_TELEGRAM_BOT_ID, "") ?: ""
+    fun getTelegramLastUpdateId(): Long = prefs.getLong(KEY_TELEGRAM_LAST_UPDATE_ID, 0L)
     fun getNotificationsEnabled(): Boolean = prefs.getBoolean(KEY_NOTIFICATIONS_ENABLED, false)
     fun getNotificationMode(): Int = prefs.getInt(KEY_NOTIFICATION_MODE, 0)
     fun getPoolStartMinutes(): Int = prefs.getInt(KEY_POOL_START_MINUTES, 360) // По умолчанию 06:00 (360 минут)
@@ -85,6 +90,12 @@ class SettingsRepository(context: Context) {
         prefs.edit().putString(KEY_TELEGRAM_BOT_ID, botId).apply()
         _telegramBotId.value = botId
     }
+    
+    fun setTelegramLastUpdateId(updateId: Long) {
+        prefs.edit().putLong(KEY_TELEGRAM_LAST_UPDATE_ID, updateId).apply()
+        _telegramLastUpdateId.value = updateId
+    }
+    
     
     fun setNotificationsEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_NOTIFICATIONS_ENABLED, enabled).apply()
@@ -130,6 +141,8 @@ class SettingsRepository(context: Context) {
         private const val KEY_TELEGRAM_TOKEN = "telegram_token"
         private const val KEY_TELEGRAM_CHAT_ID = "telegram_chat_id"
         private const val KEY_TELEGRAM_BOT_ID = "telegram_bot_id"
+        private const val KEY_TELEGRAM_LAST_UPDATE_ID = "telegram_last_update_id"
+        
         private const val KEY_NOTIFICATIONS_ENABLED = "notifications_enabled"
         private const val KEY_NOTIFICATION_MODE = "notification_mode"
         private const val KEY_POOL_START_MINUTES = "pool_start_minutes"
