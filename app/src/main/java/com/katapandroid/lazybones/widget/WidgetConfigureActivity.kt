@@ -24,6 +24,27 @@ import com.katapandroid.lazybones.ui.theme.LazyBonesTheme
 class WidgetConfigureActivity : ComponentActivity() {
     private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
 
+    private fun updateCurrentWidget() {
+        val appWidgetManager = AppWidgetManager.getInstance(this)
+        
+        // Проверяем, какой это виджет - обычный или узкий
+        val normalWidgetIds = appWidgetManager.getAppWidgetIds(
+            android.content.ComponentName(this, LazyBonesWidgetProvider::class.java)
+        )
+        val narrowWidgetIds = appWidgetManager.getAppWidgetIds(
+            android.content.ComponentName(this, LazyBonesWidgetProviderNarrow::class.java)
+        )
+        
+        when {
+            appWidgetId in normalWidgetIds -> {
+                LazyBonesWidgetProvider.updateWidget(this, appWidgetManager, appWidgetId)
+            }
+            appWidgetId in narrowWidgetIds -> {
+                LazyBonesWidgetProviderNarrow.updateWidget(this, appWidgetManager, appWidgetId)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -114,12 +135,7 @@ class WidgetConfigureActivity : ComponentActivity() {
                                             theme = 0
                                             settingsRepository.setWidgetTheme(appWidgetId, 0)
                                             // Обновляем виджет сразу при изменении темы
-                                            val appWidgetManager = AppWidgetManager.getInstance(this@WidgetConfigureActivity)
-                                            LazyBonesWidgetProvider.updateWidget(
-                                                this@WidgetConfigureActivity,
-                                                appWidgetManager,
-                                                appWidgetId
-                                            )
+                                            updateCurrentWidget()
                                         },
                                         colors = CardDefaults.cardColors(
                                             containerColor = if (theme == 0) 
@@ -153,12 +169,7 @@ class WidgetConfigureActivity : ComponentActivity() {
                                             theme = 1
                                             settingsRepository.setWidgetTheme(appWidgetId, 1)
                                             // Обновляем виджет сразу при изменении темы
-                                            val appWidgetManager = AppWidgetManager.getInstance(this@WidgetConfigureActivity)
-                                            LazyBonesWidgetProvider.updateWidget(
-                                                this@WidgetConfigureActivity,
-                                                appWidgetManager,
-                                                appWidgetId
-                                            )
+                                            updateCurrentWidget()
                                         },
                                         colors = CardDefaults.cardColors(
                                             containerColor = if (theme == 1) 
@@ -219,12 +230,7 @@ class WidgetConfigureActivity : ComponentActivity() {
                                         opacity = newValue.toInt()
                                         settingsRepository.setWidgetOpacity(appWidgetId, opacity)
                                         // Обновляем виджет в реальном времени при изменении прозрачности
-                                        val appWidgetManager = AppWidgetManager.getInstance(this@WidgetConfigureActivity)
-                                        LazyBonesWidgetProvider.updateWidget(
-                                            this@WidgetConfigureActivity,
-                                            appWidgetManager,
-                                            appWidgetId
-                                        )
+                                        updateCurrentWidget()
                                     },
                                     valueRange = 20f..100f,
                                     steps = 15, // 20, 25, 30, ..., 100
@@ -284,12 +290,7 @@ class WidgetConfigureActivity : ComponentActivity() {
                             onClick = {
                                 // Сохраняем настройки (уже сохранены при изменении)
                                 // Обновляем виджет напрямую
-                                val appWidgetManager = AppWidgetManager.getInstance(this@WidgetConfigureActivity)
-                                LazyBonesWidgetProvider.updateWidget(
-                                    this@WidgetConfigureActivity,
-                                    appWidgetManager,
-                                    appWidgetId
-                                )
+                                updateCurrentWidget()
                                 
                                 // Возвращаем результат
                                 val resultValue = Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)

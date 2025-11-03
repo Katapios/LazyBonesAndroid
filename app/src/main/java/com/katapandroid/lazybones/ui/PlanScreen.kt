@@ -116,6 +116,7 @@ private fun PlanTab(
     // Автоматически обновляем виджет при изменении пунктов плана
     LaunchedEffect(planItems.size) {
         com.katapandroid.lazybones.widget.LazyBonesWidgetProvider.updateAllWidgets(context)
+        com.katapandroid.lazybones.widget.LazyBonesWidgetProviderNarrow.updateAllWidgets(context)
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
@@ -284,6 +285,7 @@ private fun PlanTab(
                             postRepository.insert(post)
                             // Обновляем виджет
                             com.katapandroid.lazybones.widget.LazyBonesWidgetProvider.updateAllWidgets(context)
+                            com.katapandroid.lazybones.widget.LazyBonesWidgetProviderNarrow.updateAllWidgets(context)
                             snackbarHostState.showSnackbar("План сохранен. Оцените его позже в разделе \"Отчеты\"")
                         } catch (e: Exception) {
                             Log.e("PlanScreen", "Error saving plan", e)
@@ -778,6 +780,7 @@ private fun ReportFormTab(
                                 coroutineScope.launch {
                                     viewModel.saveDraftReport(newGoodTags, newBadTags)
                                     com.katapandroid.lazybones.widget.LazyBonesWidgetProvider.updateAllWidgets(context)
+                            com.katapandroid.lazybones.widget.LazyBonesWidgetProviderNarrow.updateAllWidgets(context)
                                 }
                             }
                         },
@@ -870,6 +873,7 @@ private fun ReportFormTab(
                             coroutineScope.launch {
                                 viewModel.saveDraftReport(newGoodTags, newBadTags)
                                 com.katapandroid.lazybones.widget.LazyBonesWidgetProvider.updateAllWidgets(context)
+                            com.katapandroid.lazybones.widget.LazyBonesWidgetProviderNarrow.updateAllWidgets(context)
                             }
                         }
                     },
@@ -1062,6 +1066,7 @@ private fun ReportFormTab(
                                                 coroutineScope.launch {
                                                     viewModel.saveDraftReport(newGoodTags, newBadTags)
                                                     com.katapandroid.lazybones.widget.LazyBonesWidgetProvider.updateAllWidgets(context)
+                            com.katapandroid.lazybones.widget.LazyBonesWidgetProviderNarrow.updateAllWidgets(context)
                                                 }
                                             }
                                         },
@@ -1140,6 +1145,7 @@ private fun ReportFormTab(
                                         coroutineScope.launch {
                                             viewModel.saveDraftReport(newGoodTags, newBadTags)
                                             com.katapandroid.lazybones.widget.LazyBonesWidgetProvider.updateAllWidgets(context)
+                            com.katapandroid.lazybones.widget.LazyBonesWidgetProviderNarrow.updateAllWidgets(context)
                                         }
                                     },
                                     colors = IconButtonDefaults.iconButtonColors(
@@ -1189,6 +1195,7 @@ private fun ReportFormTab(
                                 onSaved = {
                                     // Обновляем виджет, но НЕ очищаем пункты
                                     com.katapandroid.lazybones.widget.LazyBonesWidgetProvider.updateAllWidgets(context)
+                            com.katapandroid.lazybones.widget.LazyBonesWidgetProviderNarrow.updateAllWidgets(context)
                                     coroutineScope.launch {
                                         snackbarHostState.showSnackbar("Отчет сохранен")
                                     }
