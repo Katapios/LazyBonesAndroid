@@ -68,9 +68,13 @@ fun PlansScreen(plans: List<PlanItem>) {
             
             android.util.Log.d("PlansScreen", "📅 Grouped plans by dates: ${groupedPlans.keys}")
             android.util.Log.d("PlansScreen", "   Groups: ${groupedPlans.map { "${it.key}: ${it.value.size} plans" }}")
+            android.util.Log.d("PlansScreen", "   Plans with dates: ${plans.map { "${it.id}: date=${it.date}, text='${it.text.take(15)}...'" }}")
             
             // Сортируем даты в обратном порядке (новые сначала)
-            val sortedDates = groupedPlans.keys.sortedDescending()
+            // Для "Без даты" ставим в конец
+            val sortedDates = groupedPlans.keys.sortedWith(compareByDescending<String> { 
+                if (it == "Без даты") "" else it 
+            })
             
             android.util.Log.d("PlansScreen", "📅 Sorted dates: $sortedDates")
             
@@ -88,34 +92,38 @@ fun PlansScreen(plans: List<PlanItem>) {
                     
                     if (dayPlans.isEmpty()) {
                         android.util.Log.w("PlansScreen", "⚠️ Day plans for date '$date' is empty!")
-                    }
-                    
-                    Text(
-                        text = date,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
-                    
-                    dayPlans.forEachIndexed { index, plan ->
-                        android.util.Log.d("PlansScreen", "   Rendering plan $index: id=${plan.id}, text='${plan.text}', date=${plan.date}")
+                    } else {
+                        // Заголовок даты
+                        Text(
+                            text = date,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colors.primary,
+                            modifier = Modifier.padding(vertical = 6.dp)
+                        )
                         
-                        if (plan.text.isEmpty()) {
-                            android.util.Log.w("PlansScreen", "⚠️ Plan ${plan.id} has empty text!")
-                        }
-                        
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            onClick = { }
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                        // Планы на эту дату
+                        dayPlans.forEachIndexed { index, plan ->
+                            android.util.Log.d("PlansScreen", "   Rendering plan $index: id=${plan.id}, text='${plan.text}', date=${plan.date}")
+                            
+                            if (plan.text.isEmpty()) {
+                                android.util.Log.w("PlansScreen", "⚠️ Plan ${plan.id} has empty text!")
+                            }
+                            
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = { }
                             ) {
-                                Text(
-                                    text = plan.text.ifEmpty { "Пустой план #${plan.id}" },
-                                    fontSize = 12.sp
-                                )
+                                Column(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Text(
+                                        text = plan.text.ifEmpty { "Пустой план #${plan.id}" },
+                                        fontSize = 13.sp,
+                                        lineHeight = 16.sp
+                                    )
+                                }
                             }
                         }
                     }

@@ -20,7 +20,7 @@ class MainViewModel(
     private val postRepository: PostRepository,
     private val settingsRepository: SettingsRepository,
     private val application: android.app.Application,
-    private val planItemRepository: com.katapandroid.lazybones.data.PlanItemRepository? = null
+    private val planItemRepository: com.katapandroid.lazybones.data.PlanItemRepository
 ) : ViewModel() {
     private val timePoolManager = TimePoolManager(settingsRepository)
     private val wearSyncService = com.katapandroid.lazybones.sync.WearDataSyncService(application)
@@ -248,11 +248,34 @@ class MainViewModel(
                 val currentStatus = _reportStatus.value.name
                 val currentPool = _poolStatus.value.name
                 
-                // Получаем планы и отчёты
+                // Получаем планы - это Post с checklist (не черновики, где есть checklist)
                 val plans = try {
-                    planItemRepository?.getAllSync() ?: emptyList()
+                    val allPosts = postRepository.getAllPostsSync()
+                    // Планы - это Post с непустым checklist, не черновики
+                    val planPosts = allPosts.filter { !it.isDraft && it.checklist.isNotEmpty() }
+                    android.util.Log.d("MainViewModel", "📋 Found ${planPosts.size} plan posts from ${allPosts.size} total posts")
+                    
+                    // Конвертируем Post в PlanItem для синхронизации
+                    // Каждый пункт checklist становится отдельным PlanItem с датой из Post
+                    val plansList = planPosts.flatMap { post ->
+                        post.checklist.mapIndexed { index, checklistItem ->
+                            com.katapandroid.lazybones.data.PlanItem(
+                                id = post.id * 1000 + index, // Уникальный ID для каждого пункта
+                                text = checklistItem
+                            )
+                        }
+                    }
+                    
+                    android.util.Log.d("MainViewModel", "📋 Got ${plansList.size} plan items from ${planPosts.size} plan posts")
+                    if (plansList.isNotEmpty()) {
+                        android.util.Log.d("MainViewModel", "📋 Plans: ${plansList.take(3).map { "id=${it.id}, text='${it.text.take(20)}...'" }}")
+                    } else {
+                        android.util.Log.w("MainViewModel", "⚠️ Plans list is empty! Total posts: ${allPosts.size}")
+                    }
+                    plansList
                 } catch (e: Exception) {
-                    android.util.Log.e("MainViewModel", "Error getting plans", e)
+                    android.util.Log.e("MainViewModel", "❌ Error getting plans", e)
+                    e.printStackTrace()
                     emptyList()
                 }
                 
@@ -265,6 +288,14 @@ class MainViewModel(
 
                 android.util.Log.d("MainViewModel", "📤 Syncing to wear: good=$newGoodCount, bad=$newBadCount, status=$currentStatus, pool=$currentPool, timer=$currentTimerText, plans=${plans.size}, reports=${allReports.size}")
 
+                // Получаем все Post для передачи дат планов
+                val allPostsForPlans = try {
+                    postRepository.getAllPostsSync().filter { !it.isDraft && it.checklist.isNotEmpty() }
+                } catch (e: Exception) {
+                    android.util.Log.e("MainViewModel", "Error getting posts for plans", e)
+                    emptyList()
+                }
+
                 wearSyncService.syncAllData(
                     newGoodCount,
                     newBadCount,
@@ -274,7 +305,8 @@ class MainViewModel(
                     goodItemsList,
                     badItemsList,
                     plans,
-                    allReports
+                    allReports,
+                    allPostsForPlans // Передаем Post для получения дат
                 )
             } catch (e: Exception) {
                 android.util.Log.e("MainViewModel", "Error syncing to wear", e)

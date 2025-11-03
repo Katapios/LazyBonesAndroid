@@ -42,7 +42,8 @@ class WearDataSyncService(private val context: Context) {
         goodItems: List<String>,
         badItems: List<String>,
         plans: List<com.katapandroid.lazybones.data.PlanItem> = emptyList(),
-        reports: List<com.katapandroid.lazybones.data.Post> = emptyList()
+        reports: List<com.katapandroid.lazybones.data.Post> = emptyList(),
+        planPosts: List<com.katapandroid.lazybones.data.Post> = emptyList()
     ) {
         scope.launch {
             try {
@@ -91,22 +92,42 @@ class WearDataSyncService(private val context: Context) {
                     put("badItems", org.json.JSONArray(badItems))
                     put("timestamp", System.currentTimeMillis())
                     
-                    // Добавляем планы
+                    // Добавляем планы с датами из Post
                     val plansArray = org.json.JSONArray()
-                    // Используем текущую дату для всех планов, так как в PlanItem нет даты
-                    val currentDate = System.currentTimeMillis()
-                    Log.d(TAG, "📋 Adding ${plans.size} plans with date: ${java.text.SimpleDateFormat("dd.MM.yyyy HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(currentDate))}")
-                    plans.forEachIndexed { index, plan ->
-                        val planObj = JSONObject().apply {
-                            put("id", plan.id)
-                            put("text", plan.text)
-                            put("date", currentDate) // Используем текущую дату для всех планов
+                    Log.d(TAG, "📋 ====== SYNCING PLANS ======")
+                    Log.d(TAG, "📋 Plans count: ${plans.size}")
+                    Log.d(TAG, "📋 PlanPosts count: ${planPosts.size}")
+                    
+                    if (plans.isEmpty()) {
+                        Log.w(TAG, "⚠️ Plans list is EMPTY! No plans to send.")
+                    } else {
+                        // Создаем Map для быстрого поиска Post по ID
+                        val postMap = planPosts.associateBy { it.id }
+                        
+                        // Группируем планы по исходному Post.id (первые 3 цифры)
+                        val plansByPostId = plans.groupBy { it.id / 1000 }
+                        
+                        plansByPostId.forEach { (postId, planItems) ->
+                            // Получаем дату из Post
+                            val post = postMap[postId]
+                            val planDate = post?.date?.time ?: System.currentTimeMillis()
+                            
+                            Log.d(TAG, "📋 Post $postId: date=${java.text.SimpleDateFormat("dd.MM.yyyy", java.util.Locale.getDefault()).format(java.util.Date(planDate))}, plans=${planItems.size}")
+                            
+                            planItems.forEachIndexed { index, plan ->
+                                val planObj = JSONObject().apply {
+                                    put("id", plan.id)
+                                    put("text", plan.text)
+                                    put("date", planDate) // Используем дату из Post
+                                }
+                                plansArray.put(planObj)
+                                Log.d(TAG, "📋 Plan $index: id=${plan.id}, text='${plan.text.take(30)}...', date=$planDate (${java.text.SimpleDateFormat("dd.MM.yyyy", java.util.Locale.getDefault()).format(java.util.Date(planDate))})")
+                            }
                         }
-                        plansArray.put(planObj)
-                        Log.d(TAG, "📋 Plan $index: id=${plan.id}, text='${plan.text.take(30)}...', date=$currentDate")
                     }
                     put("plans", plansArray)
                     Log.d(TAG, "📋 Plans array created with ${plansArray.length()} items")
+                    Log.d(TAG, "📋 Plans JSON: ${plansArray.toString().take(200)}")
                     
                     // Добавляем отчёты (только не черновики, группируем по дате)
                     val reportsArray = org.json.JSONArray()

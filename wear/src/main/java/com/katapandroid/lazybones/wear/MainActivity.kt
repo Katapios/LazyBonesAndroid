@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.lifecycleScope
 import androidx.wear.compose.material.*
 import com.google.android.gms.tasks.Tasks
@@ -862,92 +863,155 @@ fun MainScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Заголовок
-        Text(
-            text = "LazyBones",
-            style = MaterialTheme.typography.title1,
-            textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Bold
-        )
-        
-        // Диагностическая информация
-        if (connectionInfo.isNotEmpty()) {
-            Text(
-                text = connectionInfo,
-                style = MaterialTheme.typography.body2,
-                fontSize = 10.sp,
-                color = MaterialTheme.colors.secondary
-            )
+        // Функция для перевода статуса на русский
+        fun translateStatus(status: String?): String {
+            return when (status?.uppercase()) {
+                "PUBLISHED" -> "Опубликован"
+                "SAVED" -> "Сохранён"
+                "DRAFT" -> "Черновик"
+                "IN_PROGRESS" -> "Заполняется"
+                "NOT_FILLED" -> "Не заполнен"
+                "NONE" -> "Нет отчёта"
+                null -> "Нет данных"
+                else -> status
+            }
         }
         
-        HorizontalDivider()
+        // Функция для перевода статуса пула на русский
+        fun translatePoolStatus(status: String?): String {
+            return when (status) {
+                "ACTIVE" -> "Активен"
+                "BEFORE_START" -> "До начала"
+                "AFTER_END" -> "Завершён"
+                null -> "Нет данных"
+                else -> status
+            }
+        }
         
-        // Счетчики
-        Text(
-            text = "Good: $goodCount",
-            style = MaterialTheme.typography.title2,
-            textAlign = TextAlign.Center
-        )
-        
-        Text(
-            text = "Bad: $badCount",
-            style = MaterialTheme.typography.title2,
-            textAlign = TextAlign.Center
-        )
-        
-        HorizontalDivider()
-        
-        // Статус отчета
-        Text(
-            text = "Статус: ${reportStatus ?: "нет данных"}",
-            style = MaterialTheme.typography.body1,
-            textAlign = TextAlign.Center
-        )
-        
-        // Статус пула
-        Text(
-            text = "Пул: ${poolStatus ?: "нет данных"}",
-            style = MaterialTheme.typography.body1,
-            textAlign = TextAlign.Center
-        )
-        
-        // Таймер
-        Text(
-            text = timerText ?: "Таймер: нет данных",
-            style = MaterialTheme.typography.body1,
-            textAlign = TextAlign.Center
-        )
-        
-        HorizontalDivider()
-        
-        // Good items
-        if (goodItems.isNotEmpty()) {
-            Text(
-                text = "Good items:",
-                style = MaterialTheme.typography.body2,
-                fontWeight = FontWeight.Bold
-            )
-            goodItems.forEach { item ->
+        // Красивое отображение Good и Bad
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Good
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
                 Text(
-                    text = "• $item",
-                    style = MaterialTheme.typography.body2,
-                    fontSize = 10.sp
+                    text = "✓",
+                    fontSize = 24.sp,
+                    color = Color(0xFF4CAF50),
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "$goodCount",
+                    fontSize = 20.sp,
+                    color = Color(0xFF4CAF50),
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Хорошо",
+                    fontSize = 12.sp,
+                    color = Color(0xFF4CAF50)
+                )
+            }
+            
+            // Bad
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = "✗",
+                    fontSize = 24.sp,
+                    color = Color(0xFFF44336),
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "$badCount",
+                    fontSize = 20.sp,
+                    color = Color(0xFFF44336),
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Плохо",
+                    fontSize = 12.sp,
+                    color = Color(0xFFF44336)
                 )
             }
         }
         
-        // Bad items
-        if (badItems.isNotEmpty()) {
-            Text(
-                text = "Bad items:",
-                style = MaterialTheme.typography.body2,
-                fontWeight = FontWeight.Bold
-            )
-            badItems.forEach { item ->
+        Spacer(modifier = Modifier.height(4.dp))
+        HorizontalDivider()
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        // Статус отчета
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { }
+        ) {
+            Column(
+                modifier = Modifier.padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(
-                    text = "• $item",
-                    style = MaterialTheme.typography.body2,
-                    fontSize = 10.sp
+                    text = "Статус отчёта",
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                )
+                Text(
+                    text = translateStatus(reportStatus),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+        
+        // Статус пула
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { }
+        ) {
+            Column(
+                modifier = Modifier.padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Статус пула",
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                )
+                Text(
+                    text = translatePoolStatus(poolStatus),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+        
+        // Таймер
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { }
+        ) {
+            Column(
+                modifier = Modifier.padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Таймер",
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                )
+                Text(
+                    text = timerText ?: "Нет данных",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
                 )
             }
         }
