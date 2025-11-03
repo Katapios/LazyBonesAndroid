@@ -241,6 +241,7 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                 val telegramLoading by viewModel.telegramLoading.collectAsState()
                 val telegramError by viewModel.telegramError.collectAsState()
                 val ctx = androidx.compose.ui.platform.LocalContext.current
+                val activity = ctx as? ComponentActivity
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -256,47 +257,22 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                         Spacer(Modifier.width(4.dp))
                         Text(if (telegramLoading) "Обновление..." else "Обновить")
                     }
-                    val coroutineScope = rememberCoroutineScope()
                     OutlinedButton(onClick = {
+                        if (activity == null) {
+                            android.util.Log.e("ReportsScreen", "Activity is null")
+                            return@OutlinedButton
+                        }
                         coroutineScope.launch {
-                            try {
-                                val res = viewModel.resolveGroupLink()
-                                res.fold(
-                                    onSuccess = { link ->
-                                        // Используем Activity для запуска Intent
-                                        val activity = ctx as? ComponentActivity
-                                        if (activity != null) {
-                                            try {
-                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
-                                                activity.startActivity(intent)
-                                            } catch (e: Exception) {
-                                                android.util.Log.e("ReportsScreen", "Error: ${e.message}")
-                                                // Пробуем через createChooser
-                                                try {
-                                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
-                                                    val chooser = Intent.createChooser(intent, "Открыть группу")
-                                                    activity.startActivity(chooser)
-                                                } catch (e2: Exception) {
-                                                    android.util.Log.e("ReportsScreen", "Error with chooser: ${e2.message}")
-                                                }
-                                            }
-                                        } else {
-                                            // Если не Activity, используем Context с флагом
-                                            try {
-                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link)).apply {
-                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                }
-                                                ctx.startActivity(intent)
-                                            } catch (e: Exception) {
-                                                android.util.Log.e("ReportsScreen", "Error: ${e.message}")
-                                            }
-                                        }
-                                    },
-                                    onFailure = { }
-                                )
-                            } catch (e: Exception) {
-                                android.util.Log.e("ReportsScreen", "Error resolving link: ${e.message}")
-                            }
+                            val result = viewModel.resolveGroupLink()
+                            result.fold(
+                                onSuccess = { link ->
+                                    android.util.Log.d("ReportsScreen", "Got link: $link")
+                                    openTelegramLink(activity, link)
+                                },
+                                onFailure = { error ->
+                                    android.util.Log.e("ReportsScreen", "Failed to resolve link: ${error.message}")
+                                }
+                            )
                         }
                     }, modifier = Modifier.weight(1f)) {
                         Icon(
@@ -403,6 +379,61 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
             isPublishing = isPublishing,
             publishResult = publishResult
         )
+    }
+}
+
+/**
+ * Открывает ссылку Telegram в приложении
+ */
+private fun openTelegramLink(activity: ComponentActivity, link: String) {
+    try {
+        // Нормализуем ссылку
+        val telegramLink = when {
+            link.startsWith("http://") || link.startsWith("https://") -> link
+            link.startsWith("t.me/") -> "https://$link"
+            link.startsWith("tg://resolve?domain=") -> {
+                val domain = link.substringAfter("tg://resolve?domain=").split("&").first()
+                "https://t.me/$domain"
+            }
+            link.startsWith("tg://join?invite=") -> {
+                val invite = link.substringAfter("tg://join?invite=").split("&").first()
+                "https://t.me/+$invite"
+            }
+            link.startsWith("tg://") -> link
+            else -> "https://t.me/$link"
+        }
+        
+        // Проверяем, установлен ли Telegram
+        val telegramInstalled = try {
+            activity.packageManager.getPackageInfo("org.telegram.messenger", 0)
+            true
+        } catch (e: android.content.pm.PackageManager.NameNotFoundException) {
+            false
+        }
+        
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(telegramLink))
+        
+        if (telegramInstalled) {
+            // Явно указываем package Telegram - это заставит систему открыть именно его
+            intent.setPackage("org.telegram.messenger")
+            try {
+                activity.startActivity(intent)
+                return
+            } catch (e: android.content.ActivityNotFoundException) {
+                // Если не получилось с package, пробуем без него
+            }
+        }
+        
+        // Fallback: если Telegram не установлен или не может обработать
+        intent.setPackage(null)
+        try {
+            activity.startActivity(intent)
+        } catch (e: android.content.ActivityNotFoundException) {
+            activity.startActivity(Intent.createChooser(intent, "Открыть группу"))
+        }
+        
+    } catch (e: Exception) {
+        // Ignore
     }
 }
 

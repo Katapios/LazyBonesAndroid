@@ -231,23 +231,28 @@ class TelegramService {
 
     suspend fun resolveChatOpenLink(token: String, chatId: String): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val trimmed = chatId.trim()
+            // Очищаем chat_id от переносов строк и берем первый валидный ID
+            val cleaned = chatId.trim()
+                .lines()
+                .map { it.trim() }
+                .firstOrNull { it.isNotBlank() } ?: chatId.trim()
+            
             // Если это уже ссылка - используем как есть (включая invite links типа https://t.me/+...)
-            if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-                return@withContext Result.success(trimmed)
+            if (cleaned.startsWith("http://") || cleaned.startsWith("https://")) {
+                return@withContext Result.success(cleaned)
             }
             // Если это ссылка без протокола (t.me/+... или t.me/...)
-            if (trimmed.startsWith("t.me/")) {
-                return@withContext Result.success("https://$trimmed")
+            if (cleaned.startsWith("t.me/")) {
+                return@withContext Result.success("https://$cleaned")
             }
             // Если это username (с @ или без) - формируем ссылку
-            if (trimmed.startsWith("@") || trimmed.matches(Regex("^[A-Za-z0-9_]+$"))) {
-                val username = trimmed.removePrefix("@")
+            if (cleaned.startsWith("@") || cleaned.matches(Regex("^[A-Za-z0-9_]+$"))) {
+                val username = cleaned.removePrefix("@")
                 return@withContext Result.success("https://t.me/$username")
             }
             // Если это числовой ID (включая отрицательные для групп) - получаем данные через API
-            val idLong = trimmed.toLongOrNull() ?: return@withContext Result.failure(
-                Exception("Некорректный chat_id: '$trimmed'. Ожидается числовой ID (например: -1001234567890) или username (например: @groupname)")
+            val idLong = cleaned.toLongOrNull() ?: return@withContext Result.failure(
+                Exception("Некорректный chat_id: '$cleaned'. Ожидается числовой ID (например: -1001234567890) или username (например: @groupname)")
             )
             
             // Пробуем получить информацию о чате через API
