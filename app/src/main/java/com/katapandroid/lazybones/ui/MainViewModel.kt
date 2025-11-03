@@ -18,9 +18,11 @@ import java.util.*
 
 class MainViewModel(
     private val postRepository: PostRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val application: android.app.Application
 ) : ViewModel() {
     private val timePoolManager = TimePoolManager(settingsRepository)
+    private val wearSyncService = com.katapandroid.lazybones.sync.WearDataSyncService(application)
     
     private val _goodCount = MutableStateFlow(0)
     val goodCount: StateFlow<Int> = _goodCount.asStateFlow()
@@ -55,10 +57,31 @@ class MainViewModel(
         
         // Обновляем статус пула и таймер
         viewModelScope.launch {
+            // Сначала инициализируем статус и таймер
+            updatePoolStatus()
+            updateTimer()
+            
+            // Отправляем тестовые данные сразу при запуске
+            delay(1000)
+            syncDataToWear()
+            
+            // Отправляем еще раз через 3 секунды для надежности
+            delay(2000)
+            syncDataToWear()
+            
+            // Периодически обновляем статус, таймер и синхронизируем
+            var syncCounter = 0
             while (true) {
+                delay(1000) // Обновляем каждую секунду
                 updatePoolStatus()
                 updateTimer()
-                delay(1000) // Обновляем каждую секунду
+                
+                // Синхронизируем каждые 3 секунды
+                syncCounter++
+                if (syncCounter >= 3) {
+                    syncDataToWear()
+                    syncCounter = 0
+                }
             }
         }
     }
@@ -89,8 +112,30 @@ class MainViewModel(
 
         // Счетчики берем из приоритетного отчета: опубликованный -> сохраненный -> черновик
         val countersSource = publishedReport ?: savedReport ?: draftReport
-        _goodCount.value = countersSource?.goodItems?.size ?: 0
-        _badCount.value = countersSource?.badItems?.size ?: 0
+        val newGoodCount = countersSource?.goodItems?.size ?: 0
+        val newBadCount = countersSource?.badItems?.size ?: 0
+        
+        _goodCount.value = newGoodCount
+        _badCount.value = newBadCount
+        
+        // Синхронизируем все данные с часами
+        val goodItemsList = countersSource?.goodItems ?: emptyList()
+        val badItemsList = countersSource?.badItems ?: emptyList()
+        
+        // Отправляем синхронизацию сразу после обновления статуса
+        viewModelScope.launch {
+            // Обновляем таймер перед отправкой
+            updateTimer()
+            wearSyncService.syncAllData(
+                newGoodCount,
+                newBadCount,
+                _reportStatus.value.name,
+                _poolStatus.value.name,
+                _timerText.value,
+                goodItemsList,
+                badItemsList
+            )
+        }
 
         // Статус отчета по приоритету
         _reportStatus.value = when {
@@ -110,7 +155,12 @@ class MainViewModel(
     }
     
     private fun updatePoolStatus() {
-        _poolStatus.value = timePoolManager.getPoolStatus()
+        val newStatus = timePoolManager.getPoolStatus()
+        if (_poolStatus.value != newStatus) {
+            _poolStatus.value = newStatus
+            // Синхронизируем при изменении статуса пула
+            syncDataToWear()
+        }
     }
     
     private fun updateTimer() {
@@ -118,7 +168,7 @@ class MainViewModel(
         val timeUntilStart = timePoolManager.getTimeUntilPoolStart()
         val timeUntilEnd = timePoolManager.getTimeUntilPoolEnd()
         
-        _timerText.value = when (status) {
+        val newTimerText = when (status) {
             PoolStatus.BEFORE_START -> {
                 timeUntilStart?.let { formatTime(it) }?.let { "До начала пула: $it" } ?: ""
             }
@@ -127,6 +177,70 @@ class MainViewModel(
             }
             PoolStatus.AFTER_END -> {
                 timeUntilStart?.let { formatTime(it) }?.let { "До начала пула: $it" } ?: "Пул завершен"
+            }
+        }
+        
+        _timerText.value = newTimerText
+    }
+    
+    private fun syncDataToWear() {
+        viewModelScope.launch {
+            try {
+                val posts = postRepository.getAllPostsSync()
+                val (poolStart, poolEnd) = timePoolManager.getCurrentPoolRange()
+                val reportsInPool = posts.filter { post ->
+                    val postDate = post.date
+                    val isInPool = postDate >= poolStart && postDate <= poolEnd
+                    val noChecklist = post.checklist.isEmpty()
+                    val hasGoodOrBad = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()
+                    isInPool && noChecklist && hasGoodOrBad
+                }
+                val publishedReport = reportsInPool.firstOrNull { !it.isDraft && it.published }
+                val savedReport = reportsInPool.firstOrNull { !it.isDraft && !it.published }
+                val draftReport = reportsInPool.firstOrNull { it.isDraft }
+                val countersSource = publishedReport ?: savedReport ?: draftReport
+                
+                val goodItemsList = countersSource?.goodItems ?: emptyList()
+                val badItemsList = countersSource?.badItems ?: emptyList()
+                val newGoodCount = goodItemsList.size
+                val newBadCount = badItemsList.size
+                
+                // Убеждаемся, что таймер обновлен - обновляем его перед отправкой
+                updateTimer()
+                val currentTimerText = _timerText.value.takeIf { it.isNotEmpty() } ?: run {
+                    // Если таймер пустой, вычисляем его заново
+                    val status = timePoolManager.getPoolStatus()
+                    val timeUntilStart = timePoolManager.getTimeUntilPoolStart()
+                    val timeUntilEnd = timePoolManager.getTimeUntilPoolEnd()
+                    when (status) {
+                        PoolStatus.BEFORE_START -> {
+                            timeUntilStart?.let { formatTime(it) }?.let { "До начала пула: $it" } ?: "Ожидание..."
+                        }
+                        PoolStatus.ACTIVE -> {
+                            timeUntilEnd?.let { formatTime(it) }?.let { "До конца пула: $it" } ?: "Пул активен"
+                        }
+                        PoolStatus.AFTER_END -> {
+                            timeUntilStart?.let { formatTime(it) }?.let { "До начала пула: $it" } ?: "Пул завершен"
+                        }
+                    }
+                }
+                val currentStatus = _reportStatus.value.name
+                val currentPool = _poolStatus.value.name
+                
+                android.util.Log.d("MainViewModel", "📤 Syncing to wear: good=$newGoodCount, bad=$newBadCount, status=$currentStatus, pool=$currentPool, timer=$currentTimerText")
+                
+                wearSyncService.syncAllData(
+                    newGoodCount,
+                    newBadCount,
+                    currentStatus,
+                    currentPool,
+                    currentTimerText,
+                    goodItemsList,
+                    badItemsList
+                )
+            } catch (e: Exception) {
+                android.util.Log.e("MainViewModel", "Error syncing to wear", e)
+                e.printStackTrace()
             }
         }
     }

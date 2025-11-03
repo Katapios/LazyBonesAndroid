@@ -98,6 +98,9 @@ dependencies {
     androidTestImplementation("androidx.room:room-testing:2.6.1")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.material:material-icons-core")
+    
+    // Wearable Data Layer для синхронизации с часами
+    implementation("com.google.android.gms:play-services-wearable:18.1.0")
 }
 
 configurations.all {

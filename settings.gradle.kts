@@ -21,3 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "LazyBones"
 include(":app")
+include(":wear")

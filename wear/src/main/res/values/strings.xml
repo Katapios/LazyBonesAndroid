@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">LazyBones Watch</string>
+    <string name="watch_face_name">LazyBones</string>
+    <string name="widget_name">LazyBones Widget</string>
+</resources>
+
