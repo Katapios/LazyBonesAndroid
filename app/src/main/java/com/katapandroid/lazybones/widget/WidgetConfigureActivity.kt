@@ -27,7 +27,8 @@ class WidgetConfigureActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Проверяем переданный widget ID
+        // Проверяем переданный widget ID из разных источников
+        // Стандартный способ (при добавлении виджета)
         val extras = intent.extras
         if (extras != null) {
             appWidgetId = extras.getInt(
@@ -35,12 +36,28 @@ class WidgetConfigureActivity : ComponentActivity() {
                 AppWidgetManager.INVALID_APPWIDGET_ID
             )
         }
+        
+        // Альтернативный способ (для Samsung и других лаунчеров)
+        if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
+            appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
+        }
+        
+        // Если ID все еще невалидный - пробуем получить из data
+        if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID && intent.data != null) {
+            val dataString = intent.data?.toString()
+            dataString?.substringAfterLast("/")?.toIntOrNull()?.let {
+                appWidgetId = it
+            }
+        }
 
         // Если ID невалидный - закрываем
         if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
+            android.util.Log.e("WidgetConfigure", "Invalid widget ID, finishing activity")
             finish()
             return
         }
+        
+        android.util.Log.d("WidgetConfigure", "Opening settings for widget ID: $appWidgetId")
 
         val settingsRepository = SettingsRepository(this)
         val initialTheme = settingsRepository.getWidgetTheme(appWidgetId)

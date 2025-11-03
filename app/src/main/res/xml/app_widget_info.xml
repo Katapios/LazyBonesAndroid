@@ -12,4 +12,6 @@
     android:widgetCategory="home_screen"
     android:targetCellWidth="2"
     android:targetCellHeight="2"
-    android:configure="com.katapandroid.lazybones.widget.WidgetConfigureActivity" />
+    android:configure="com.katapandroid.lazybones.widget.WidgetConfigureActivity"
+    android:previewLayout="@layout/widget_layout"
+    android:previewImage="@mipmap/ic_launcher" />

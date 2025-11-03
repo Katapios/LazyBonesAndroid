@@ -102,6 +102,47 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
             onUpdate(context, appWidgetManager, appWidgetIds)
         }
     }
+    
+    /**
+     * Вызывается когда изменяются опции виджета (размер, настройки)
+     * Важно для Samsung и других кастомных лаунчеров
+     */
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: android.os.Bundle?
+    ) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+        Log.d("Widget", "onAppWidgetOptionsChanged for widget $appWidgetId")
+        // Обновляем виджет с новыми опциями
+        updateWidget(context, appWidgetManager, appWidgetId)
+    }
+    
+    /**
+     * Вызывается при удалении виджета
+     */
+    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
+        super.onDeleted(context, appWidgetIds)
+        Log.d("Widget", "Widgets deleted: ${appWidgetIds.contentToString()}")
+    }
+    
+    /**
+     * Вызывается при отключении виджета
+     */
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        Log.d("Widget", "Widget provider disabled")
+        scope.cancel()
+    }
+    
+    /**
+     * Вызывается при включении виджета
+     */
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        Log.d("Widget", "Widget provider enabled")
+    }
 
     private fun showDefaultWidget(
         context: Context,
@@ -140,6 +181,19 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.widget_open_app, pendingIntent)
+            
+            // Кнопка настроек виджета (для Samsung)
+            val settingsIntent = Intent(context, com.katapandroid.lazybones.widget.WidgetConfigureActivity::class.java).apply {
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            val settingsPendingIntent = PendingIntent.getActivity(
+                context,
+                appWidgetId, // Уникальный request code для каждого виджета
+                settingsIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.widget_settings_button, settingsPendingIntent)
             
             // Обновление виджета по клику
             val refreshIntent = Intent("com.katapandroid.lazybones.WIDGET_UPDATE").apply {
@@ -296,6 +350,19 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
                 )
                 views.setOnClickPendingIntent(R.id.widget_open_app, pendingIntent)
 
+                // Кнопка настроек виджета (для Samsung)
+                val settingsIntent = Intent(context, com.katapandroid.lazybones.widget.WidgetConfigureActivity::class.java).apply {
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                val settingsPendingIntent = PendingIntent.getActivity(
+                    context,
+                    appWidgetId + 1000, // Уникальный request code для настроек
+                    settingsIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                views.setOnClickPendingIntent(R.id.widget_settings_button, settingsPendingIntent)
+
                 val refreshIntent = Intent("com.katapandroid.lazybones.WIDGET_UPDATE").apply {
                     setComponent(android.content.ComponentName(context, LazyBonesWidgetProvider::class.java))
                 }
@@ -349,6 +416,8 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
         views.setTextColor(R.id.widget_motivation_text, android.graphics.Color.parseColor(textColor))
         views.setTextColor(R.id.widget_status_text, android.graphics.Color.parseColor(textColor))
         views.setTextColor(R.id.widget_timer_text, android.graphics.Color.parseColor(statusTextColor))
+        // Цвет иконки настроек - используем вторичный цвет текста
+        views.setTextColor(R.id.widget_settings_button, android.graphics.Color.parseColor(secondaryTextColor))
     }
     
     private fun formatTime(millis: Long): String {

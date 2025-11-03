@@ -7,18 +7,41 @@
     android:background="#FF000000"
     android:padding="12dp">
 
-    <!-- Лозунг сверху - крупнее -->
-    <TextView
-        android:id="@+id/widget_motivation_text"
+    <!-- Заголовок с кнопкой настроек -->
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Загрузка..."
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:textColor="#FFFFFF"
-        android:padding="8dp"
-        android:layout_marginBottom="12dp"
-        android:gravity="center" />
+        android:layout_marginBottom="8dp">
+        
+        <!-- Лозунг сверху - крупнее -->
+        <TextView
+            android:id="@+id/widget_motivation_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Загрузка..."
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:padding="8dp"
+            android:gravity="center"
+            android:layout_centerInParent="true" />
+        
+        <!-- Кнопка настроек (для Samsung) -->
+        <TextView
+            android:id="@+id/widget_settings_button"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:text="⚙"
+            android:textSize="20sp"
+            android:textColor="#CCCCCC"
+            android:gravity="center"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:padding="4dp"
+            android:clickable="true"
+            android:focusable="true" />
+    </RelativeLayout>
 
     <!-- Основная часть: Good слева, Статус по центру (2 строки), Bad справа -->
     <LinearLayout
