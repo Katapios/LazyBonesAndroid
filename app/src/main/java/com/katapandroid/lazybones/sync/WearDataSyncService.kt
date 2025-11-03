@@ -40,7 +40,9 @@ class WearDataSyncService(private val context: Context) {
         poolStatus: String?,
         timerText: String?,
         goodItems: List<String>,
-        badItems: List<String>
+        badItems: List<String>,
+        plans: List<com.katapandroid.lazybones.data.PlanItem> = emptyList(),
+        reports: List<com.katapandroid.lazybones.data.Post> = emptyList()
     ) {
         scope.launch {
             try {
@@ -77,7 +79,7 @@ class WearDataSyncService(private val context: Context) {
                     Log.w(TAG, "⚠️ No wearable devices connected, but sending data anyway")
                 }
                 
-                Log.d(TAG, "📤 Starting sync: good=$goodCount, bad=$badCount, status=$reportStatus, pool=$poolStatus, timer=$timerText")
+                Log.d(TAG, "📤 Starting sync: good=$goodCount, bad=$badCount, status=$reportStatus, pool=$poolStatus, timer=$timerText, plans=${plans.size}, reports=${reports.size}")
                 
                 val data = JSONObject().apply {
                     put("goodCount", goodCount)
@@ -88,6 +90,40 @@ class WearDataSyncService(private val context: Context) {
                     put("goodItems", org.json.JSONArray(goodItems))
                     put("badItems", org.json.JSONArray(badItems))
                     put("timestamp", System.currentTimeMillis())
+                    
+                    // Добавляем планы
+                    val plansArray = org.json.JSONArray()
+                    // Используем текущую дату для всех планов, так как в PlanItem нет даты
+                    val currentDate = System.currentTimeMillis()
+                    Log.d(TAG, "📋 Adding ${plans.size} plans with date: ${java.text.SimpleDateFormat("dd.MM.yyyy HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(currentDate))}")
+                    plans.forEachIndexed { index, plan ->
+                        val planObj = JSONObject().apply {
+                            put("id", plan.id)
+                            put("text", plan.text)
+                            put("date", currentDate) // Используем текущую дату для всех планов
+                        }
+                        plansArray.put(planObj)
+                        Log.d(TAG, "📋 Plan $index: id=${plan.id}, text='${plan.text.take(30)}...', date=$currentDate")
+                    }
+                    put("plans", plansArray)
+                    Log.d(TAG, "📋 Plans array created with ${plansArray.length()} items")
+                    
+                    // Добавляем отчёты (только не черновики, группируем по дате)
+                    val reportsArray = org.json.JSONArray()
+                    reports.filter { !it.isDraft }.sortedByDescending { it.date.time }.forEach { report ->
+                        val reportObj = JSONObject().apply {
+                            put("id", report.id)
+                            put("date", report.date.time)
+                            put("goodCount", report.goodCount)
+                            put("badCount", report.badCount)
+                            put("published", report.published)
+                            put("goodItems", org.json.JSONArray(report.goodItems))
+                            put("badItems", org.json.JSONArray(report.badItems))
+                            put("checklist", org.json.JSONArray(report.checklist))
+                        }
+                        reportsArray.put(reportObj)
+                    }
+                    put("reports", reportsArray)
                 }
                 
                 // Используем PutDataRequest напрямую через PutDataMapRequest

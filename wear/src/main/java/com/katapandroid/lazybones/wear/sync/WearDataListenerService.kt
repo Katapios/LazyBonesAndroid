@@ -91,9 +91,39 @@ class WearDataListenerService : WearableListenerService() {
                 }
             }
             
-            Log.d(TAG, "✅ Parsed data: good=$goodCount, bad=$badCount, status=$reportStatus, pool=$poolStatus, timer=$timerText")
+            // Парсим планы
+            val plansJson = if (json.has("plans") && !json.isNull("plans")) {
+                val plansArray = json.getJSONArray("plans")
+                val plansJsonString = plansArray.toString()
+                Log.d(TAG, "📋 Parsed plansJson: $plansJsonString")
+                Log.d(TAG, "📋 Plans array length: ${plansArray.length()}")
+                // Проверяем, что дата есть в планах
+                if (plansArray.length() > 0) {
+                    val firstPlan = plansArray.getJSONObject(0)
+                    if (firstPlan.has("date")) {
+                        Log.d(TAG, "✅ First plan has date: ${firstPlan.getLong("date")}")
+                    } else {
+                        Log.w(TAG, "⚠️ First plan has NO date field!")
+                    }
+                }
+                plansJsonString
+            } else {
+                Log.w(TAG, "⚠️ No 'plans' field in JSON or it's null")
+                "[]"
+            }
             
-            saveDataToSharedPreferences(goodCount, badCount, reportStatus, poolStatus, timerText, goodItems, badItems)
+            // Парсим отчёты
+            val reportsJson = if (json.has("reports") && !json.isNull("reports")) {
+                val reportsArray = json.getJSONArray("reports")
+                reportsArray.toString()
+            } else {
+                Log.w(TAG, "⚠️ No 'reports' field in JSON or it's null")
+                "[]"
+            }
+            
+            Log.d(TAG, "✅ Parsed data: good=$goodCount, bad=$badCount, plans=${json.optJSONArray("plans")?.length() ?: 0}, reports=${json.optJSONArray("reports")?.length() ?: 0}")
+            
+            saveDataToSharedPreferences(goodCount, badCount, reportStatus, poolStatus, timerText, goodItems, badItems, plansJson, reportsJson)
             
         } catch (e: Exception) {
             Log.e(TAG, "❌ Error parsing data", e)
@@ -108,7 +138,9 @@ class WearDataListenerService : WearableListenerService() {
         poolStatus: String?,
         timerText: String?,
         goodItems: List<String>,
-        badItems: List<String>
+        badItems: List<String>,
+        plansJson: String,
+        reportsJson: String
     ) {
         val prefs = getSharedPreferences("wear_data", Context.MODE_PRIVATE)
         prefs.edit()
@@ -119,6 +151,8 @@ class WearDataListenerService : WearableListenerService() {
             .putString("timerText", timerText)
             .putStringSet("goodItems", goodItems.toSet())
             .putStringSet("badItems", badItems.toSet())
+            .putString("plansJson", plansJson)
+            .putString("reportsJson", reportsJson)
             .apply()
         
         Log.d(TAG, "💾 Data saved to SharedPreferences: good=$goodCount, bad=$badCount, timer=$timerText")

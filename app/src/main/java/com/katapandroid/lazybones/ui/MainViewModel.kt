@@ -19,7 +19,8 @@ import java.util.*
 class MainViewModel(
     private val postRepository: PostRepository,
     private val settingsRepository: SettingsRepository,
-    private val application: android.app.Application
+    private val application: android.app.Application,
+    private val planItemRepository: com.katapandroid.lazybones.data.PlanItemRepository? = null
 ) : ViewModel() {
     private val timePoolManager = TimePoolManager(settingsRepository)
     private val wearSyncService = com.katapandroid.lazybones.sync.WearDataSyncService(application)
@@ -126,6 +127,24 @@ class MainViewModel(
         viewModelScope.launch {
             // Обновляем таймер перед отправкой
             updateTimer()
+            
+            // Получаем планы и отчёты
+            val plans = try {
+                planItemRepository?.getAllSync() ?: emptyList()
+            } catch (e: Exception) {
+                android.util.Log.e("MainViewModel", "Error getting plans", e)
+                emptyList()
+            }
+            
+            val allReports = try {
+                postRepository.getAllPostsSync().filter { !it.isDraft }.sortedByDescending { it.date.time }
+            } catch (e: Exception) {
+                android.util.Log.e("MainViewModel", "Error getting reports", e)
+                emptyList()
+            }
+            
+            android.util.Log.d("MainViewModel", "📤 Syncing plans=${plans.size}, reports=${allReports.size}")
+            
             wearSyncService.syncAllData(
                 newGoodCount,
                 newBadCount,
@@ -133,7 +152,9 @@ class MainViewModel(
                 _poolStatus.value.name,
                 _timerText.value,
                 goodItemsList,
-                badItemsList
+                badItemsList,
+                plans,
+                allReports
             )
         }
 
@@ -227,8 +248,23 @@ class MainViewModel(
                 val currentStatus = _reportStatus.value.name
                 val currentPool = _poolStatus.value.name
                 
-                android.util.Log.d("MainViewModel", "📤 Syncing to wear: good=$newGoodCount, bad=$newBadCount, status=$currentStatus, pool=$currentPool, timer=$currentTimerText")
+                // Получаем планы и отчёты
+                val plans = try {
+                    planItemRepository?.getAllSync() ?: emptyList()
+                } catch (e: Exception) {
+                    android.util.Log.e("MainViewModel", "Error getting plans", e)
+                    emptyList()
+                }
                 
+                val allReports = try {
+                    postRepository.getAllPostsSync().filter { !it.isDraft }.sortedByDescending { it.date.time }
+                } catch (e: Exception) {
+                    android.util.Log.e("MainViewModel", "Error getting reports", e)
+                    emptyList()
+                }
+
+                android.util.Log.d("MainViewModel", "📤 Syncing to wear: good=$newGoodCount, bad=$newBadCount, status=$currentStatus, pool=$currentPool, timer=$currentTimerText, plans=${plans.size}, reports=${allReports.size}")
+
                 wearSyncService.syncAllData(
                     newGoodCount,
                     newBadCount,
@@ -236,7 +272,9 @@ class MainViewModel(
                     currentPool,
                     currentTimerText,
                     goodItemsList,
-                    badItemsList
+                    badItemsList,
+                    plans,
+                    allReports
                 )
             } catch (e: Exception) {
                 android.util.Log.e("MainViewModel", "Error syncing to wear", e)

@@ -60,6 +60,8 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    // Pager for swipe navigation
+    implementation("androidx.compose.foundation:foundation:1.5.4")
     
     // Core
     implementation(libs.androidx.core.ktx)
