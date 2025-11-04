@@ -1,4 +1,4 @@
-package com.katapandroid.lazybones.ui
+package com.katapandroid.lazybones.feature.reports
 
 import android.content.Intent
 import android.net.Uri
@@ -26,9 +26,8 @@ import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.*
 import org.koin.androidx.compose.koinViewModel
-import com.katapandroid.lazybones.data.Post
-import com.katapandroid.lazybones.ui.ReportsViewModel
-import org.koin.androidx.compose.getViewModel
+import com.katapandroid.lazybones.core.domain.model.Post
+import com.katapandroid.lazybones.feature.reports.ReportsViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.foundation.layout.WindowInsets

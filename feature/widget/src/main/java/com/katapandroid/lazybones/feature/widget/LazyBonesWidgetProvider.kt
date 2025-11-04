@@ -1,4 +1,4 @@
-package com.katapandroid.lazybones.widget
+package com.katapandroid.lazybones.feature.widget
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -9,12 +9,13 @@ import android.util.Log
 import android.widget.RemoteViews
 import com.katapandroid.lazybones.MainActivity
 import com.katapandroid.lazybones.R
-import com.katapandroid.lazybones.data.LazyBonesDatabase
-import com.katapandroid.lazybones.data.Post
-import com.katapandroid.lazybones.data.PlanItem
-import com.katapandroid.lazybones.data.SettingsRepository
-import com.katapandroid.lazybones.data.TimePoolManager
-import com.katapandroid.lazybones.data.PoolStatus
+import com.katapandroid.lazybones.core.database.LazyBonesDatabase
+import com.katapandroid.lazybones.core.database.mapper.toDomain
+import com.katapandroid.lazybones.core.domain.model.PlanItem
+import com.katapandroid.lazybones.core.domain.model.PoolStatus
+import com.katapandroid.lazybones.core.domain.model.Post
+import com.katapandroid.lazybones.core.domain.service.TimePoolManager
+import com.katapandroid.lazybones.core.preferences.SharedPreferencesSettingsRepository
 import kotlinx.coroutines.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -193,11 +194,11 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
                 val planItemDao = db.planItemDao()
 
                 // Получаем посты и пункты плана
-                val posts = withContext(Dispatchers.IO) { postDao.getAllPostsSync() }
-                val planItems = withContext(Dispatchers.IO) { planItemDao.getAllSync() }
+                val posts = withContext(Dispatchers.IO) { postDao.getAll().map { it.toDomain() } }
+                val planItems = withContext(Dispatchers.IO) { planItemDao.getAll().map { it.toDomain() } }
 
                 // Фильтруем посты по текущему пулу времени
-                val settingsRepository = SettingsRepository(context)
+                val settingsRepository = SharedPreferencesSettingsRepository(context.applicationContext)
                 val timePoolManager = TimePoolManager(settingsRepository)
                 val (poolStart, poolEnd) = timePoolManager.getCurrentPoolRange()
 
@@ -317,7 +318,7 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
     }
 
     private fun applyWidgetTheme(context: Context, views: RemoteViews, appWidgetId: Int) {
-        val settingsRepository = SettingsRepository(context)
+        val settingsRepository = SharedPreferencesSettingsRepository(context.applicationContext)
         val theme = settingsRepository.getWidgetTheme(appWidgetId) // 0 = черный, 1 = белый
         val opacity = settingsRepository.getWidgetOpacity(appWidgetId) // 20-100
         

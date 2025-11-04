@@ -1,42 +1,25 @@
 package com.katapandroid.lazybones.di
 
-import android.app.Application
-import androidx.room.Room
-import com.katapandroid.lazybones.data.*
-import com.katapandroid.lazybones.ui.MainViewModel
-import com.katapandroid.lazybones.ui.ReportsViewModel
-import com.katapandroid.lazybones.ui.ReportFormViewModel
-import com.katapandroid.lazybones.ui.VoiceNotesViewModel
-import com.katapandroid.lazybones.ui.PlanViewModel
-import com.katapandroid.lazybones.ui.SettingsViewModel
-import com.katapandroid.lazybones.network.TelegramService
-import com.katapandroid.lazybones.data.SettingsRepository
-import org.koin.androidx.viewmodel.dsl.viewModel
+import com.katapandroid.lazybones.core.database.di.databaseModule
+import com.katapandroid.lazybones.core.network.di.networkModule
+import com.katapandroid.lazybones.core.notification.di.notificationModule
+import com.katapandroid.lazybones.core.preferences.di.preferencesModule
+import com.katapandroid.lazybones.feature.home.di.homeModule
+import com.katapandroid.lazybones.feature.plan.di.planModule
+import com.katapandroid.lazybones.feature.reports.di.reportsModule
 import org.koin.dsl.module
 
-val appModule = module {
-    single {
-        Room.databaseBuilder(
-            get<Application>(), // Исправлено: используем Application
-            LazyBonesDatabase::class.java,
-            "lazybones_db"
-        ).fallbackToDestructiveMigration()
-         .build()
-    }
-    single { get<LazyBonesDatabase>().postDao() }
-    single { get<LazyBonesDatabase>().voiceNoteDao() }
-    single { get<LazyBonesDatabase>().planItemDao() }
-    single { get<LazyBonesDatabase>().tagDao() }
-    single { PostRepository(get()) }
-    single { VoiceNoteRepository(get()) }
-    single { PlanItemRepository(get()) }
-    single { TagRepository(get()) }
-    single { TelegramService() }
-    single { SettingsRepository(get()) }
-    viewModel { MainViewModel(get(), get()) }
-    viewModel { ReportsViewModel(get<PostRepository>(), get<TelegramService>(), get<SettingsRepository>()) }
-    viewModel { ReportFormViewModel(get<PostRepository>(), get<TagRepository>(), get<SettingsRepository>()) }
-    viewModel { VoiceNotesViewModel(get()) }
-    viewModel { PlanViewModel(get<PlanItemRepository>(), get<TagRepository>()) }
-    viewModel { SettingsViewModel(get<TelegramService>(), get<SettingsRepository>(), get()) }
-} 
+val legacyModule = module {
+    // TODO: migrate remaining ViewModels (ReportForm, Settings, VoiceNotes) to feature modules
+}
+
+val appModules = listOf(
+    databaseModule,
+    preferencesModule,
+    networkModule,
+    notificationModule,
+    planModule,
+    reportsModule,
+    homeModule,
+    legacyModule
+)

@@ -1,9 +1,11 @@
 package com.katapandroid.lazybones
 
 import android.app.Application
-import com.katapandroid.lazybones.di.appModule
-import com.katapandroid.lazybones.notification.NotificationService
+import com.katapandroid.lazybones.core.domain.repository.SettingsRepository
+import com.katapandroid.lazybones.core.domain.service.NotificationScheduler
+import com.katapandroid.lazybones.di.appModules
 import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.android.get
 import org.koin.core.context.startKoin
 
 class LazyBonesApp : Application() {
@@ -11,16 +13,16 @@ class LazyBonesApp : Application() {
         super.onCreate()
         startKoin {
             androidContext(this@LazyBonesApp)
-            modules(appModule)
+            modules(appModules)
         }
-        
+
         // Инициализируем расписание уведомлений при запуске приложения
         // Обертываем в try-catch, чтобы приложение не крашилось при отсутствии разрешений
         try {
-            val settingsRepository = com.katapandroid.lazybones.data.SettingsRepository(this)
+            val settingsRepository: SettingsRepository = get()
+            val notificationScheduler: NotificationScheduler = get()
             if (settingsRepository.getNotificationsEnabled()) {
-                val notificationService = NotificationService(this)
-                notificationService.scheduleNotifications()
+                notificationScheduler.scheduleNotifications()
             }
         } catch (e: Exception) {
             android.util.Log.e("LazyBonesApp", "Error scheduling notifications on startup: ${e.message}", e)

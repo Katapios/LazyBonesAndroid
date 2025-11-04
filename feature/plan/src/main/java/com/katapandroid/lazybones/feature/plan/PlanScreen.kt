@@ -1,5 +1,5 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
-package com.katapandroid.lazybones.ui
+package com.katapandroid.lazybones.feature.plan
 
 import android.util.Log
 import androidx.compose.ui.platform.LocalContext
@@ -23,8 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import com.katapandroid.lazybones.data.PlanItem
-import com.katapandroid.lazybones.data.Tag
+import com.katapandroid.lazybones.core.domain.model.PlanItem
+import com.katapandroid.lazybones.core.domain.model.Tag
 import org.koin.androidx.compose.koinViewModel
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -33,11 +33,10 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
-import com.katapandroid.lazybones.data.PostRepository
-import com.katapandroid.lazybones.data.Post
+import com.katapandroid.lazybones.core.domain.repository.PostRepository
+import com.katapandroid.lazybones.core.domain.model.Post
 import com.katapandroid.lazybones.ui.ReportFormViewModel
 import org.koin.androidx.compose.get
-import com.katapandroid.lazybones.data.SettingsRepository
 import com.katapandroid.lazybones.ui.MainViewModel
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,7 +47,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.ui.text.font.FontWeight
-import com.katapandroid.lazybones.data.TagType
+import com.katapandroid.lazybones.core.domain.model.TagType
+import com.katapandroid.lazybones.feature.widget.LazyBonesWidgetProvider
 
 @Composable
 fun PlanScreen(
@@ -115,7 +115,7 @@ private fun PlanTab(
     
     // Автоматически обновляем виджет при изменении пунктов плана
     LaunchedEffect(planItems.size) {
-        com.katapandroid.lazybones.widget.LazyBonesWidgetProvider.updateAllWidgets(context)
+        LazyBonesWidgetProvider.updateAllWidgets(context)
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
@@ -283,7 +283,7 @@ private fun PlanTab(
                             )
                             postRepository.insert(post)
                             // Обновляем виджет
-                            com.katapandroid.lazybones.widget.LazyBonesWidgetProvider.updateAllWidgets(context)
+                            LazyBonesWidgetProvider.updateAllWidgets(context)
                             snackbarHostState.showSnackbar("План сохранен. Оцените его позже в разделе \"Отчеты\"")
                         } catch (e: Exception) {
                             Log.e("PlanScreen", "Error saving plan", e)
@@ -777,7 +777,7 @@ private fun ReportFormTab(
                                 val newBadTags = if (selectedTab == 1) newTags else selectedBadTags
                                 coroutineScope.launch {
                                     viewModel.saveDraftReport(newGoodTags, newBadTags)
-                                    com.katapandroid.lazybones.widget.LazyBonesWidgetProvider.updateAllWidgets(context)
+                                    LazyBonesWidgetProvider.updateAllWidgets(context)
                                 }
                             }
                         },
@@ -869,7 +869,7 @@ private fun ReportFormTab(
                             // Автоматически сохраняем черновик отчета при добавлении пункта
                             coroutineScope.launch {
                                 viewModel.saveDraftReport(newGoodTags, newBadTags)
-                                com.katapandroid.lazybones.widget.LazyBonesWidgetProvider.updateAllWidgets(context)
+                                LazyBonesWidgetProvider.updateAllWidgets(context)
                             }
                         }
                     },
@@ -1061,7 +1061,7 @@ private fun ReportFormTab(
                                                 val newBadTags = if (selectedTab == 1) newTags else selectedBadTags
                                                 coroutineScope.launch {
                                                     viewModel.saveDraftReport(newGoodTags, newBadTags)
-                                                    com.katapandroid.lazybones.widget.LazyBonesWidgetProvider.updateAllWidgets(context)
+                                                    LazyBonesWidgetProvider.updateAllWidgets(context)
                                                 }
                                             }
                                         },
@@ -1139,7 +1139,7 @@ private fun ReportFormTab(
                                         val newBadTags = if (selectedTab == 1) newTags else selectedBadTags
                                         coroutineScope.launch {
                                             viewModel.saveDraftReport(newGoodTags, newBadTags)
-                                            com.katapandroid.lazybones.widget.LazyBonesWidgetProvider.updateAllWidgets(context)
+                                            LazyBonesWidgetProvider.updateAllWidgets(context)
                                         }
                                     },
                                     colors = IconButtonDefaults.iconButtonColors(
@@ -1188,7 +1188,7 @@ private fun ReportFormTab(
                                 badItems = selectedBadTags,
                                 onSaved = {
                                     // Обновляем виджет, но НЕ очищаем пункты
-                                    com.katapandroid.lazybones.widget.LazyBonesWidgetProvider.updateAllWidgets(context)
+                                    LazyBonesWidgetProvider.updateAllWidgets(context)
                                     coroutineScope.launch {
                                         snackbarHostState.showSnackbar("Отчет сохранен")
                                     }

@@ -1,12 +1,12 @@
-package com.katapandroid.lazybones.ui
+package com.katapandroid.lazybones.feature.reports
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.katapandroid.lazybones.data.Post
-import com.katapandroid.lazybones.data.PostRepository
-import com.katapandroid.lazybones.data.SettingsRepository
-import com.katapandroid.lazybones.network.TelegramService
-import com.katapandroid.lazybones.network.TelegramMessage
+import com.katapandroid.lazybones.core.domain.model.Post
+import com.katapandroid.lazybones.core.domain.model.TelegramMessage
+import com.katapandroid.lazybones.core.domain.repository.PostRepository
+import com.katapandroid.lazybones.core.domain.repository.SettingsRepository
+import com.katapandroid.lazybones.core.domain.service.TelegramGateway
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.onEach
 
 class ReportsViewModel(
     private val postRepository: PostRepository,
-    private val telegramService: TelegramService,
+    private val telegramGateway: TelegramGateway,
     private val settingsRepository: SettingsRepository
 ) : ViewModel() {
     private val _posts = MutableStateFlow<List<Post>>(emptyList())
@@ -35,7 +35,7 @@ class ReportsViewModel(
     val telegramError: StateFlow<String?> = _telegramError.asStateFlow()
 
     init {
-        postRepository.getAllPosts().onEach { posts ->
+        postRepository.observePosts().onEach { posts ->
             // Локальные отчеты - это отчеты с goodItems или badItems, созданные через ReportFormScreen (без checklist)
             // Черновики не показываются (isDraft = false)
             _posts.value = posts.filter { 
@@ -70,16 +70,13 @@ class ReportsViewModel(
         return try {
             // Получаем сохраненное имя устройства
             val deviceName = settingsRepository.getPhoneName()
-            val result = telegramService.sendCustomReport(
+            val result = telegramGateway.publishReport(
                 token = token,
                 chatId = chatId,
-                date = post.date,
-                checklist = post.checklist,
-                goodItems = post.goodItems,
-                badItems = post.badItems,
+                post = post,
                 deviceName = deviceName
             )
-            
+
             result.fold(
                 onSuccess = { 
                     // Обновляем статус публикации
@@ -110,63 +107,54 @@ class ReportsViewModel(
                     _telegramError.value = "Укажите токен и chat_id в настройках"
                     return@launch
                 }
-                // Используем тот же chatId, что и для отправки - резолвим в numeric ID для фильтрации
+
                 val trimmedChatId = chatIdStr.trim()
-                val targetChatId: Long = trimmedChatId.toLongOrNull() ?: run {
-                    // Нужно резолвить username в numeric ID
-                    val res = telegramService.resolveChatNumericId(token, trimmedChatId)
-                    when {
-                        res.isSuccess -> res.getOrNull()!!
-                        else -> {
-                            val errorMsg = res.exceptionOrNull()?.message 
-                                ?: "Не удалось определить ID группы. Проверьте chat_id в настройках"
-                            _telegramError.value = errorMsg
-                            return@launch
+                val targetChatId = trimmedChatId.toLongOrNull() ?: run {
+                    val resolvedId = telegramGateway.resolveChatNumericId(token, trimmedChatId)
+                    if (resolvedId.isFailure) {
+                        _telegramError.value = resolvedId.exceptionOrNull()?.message
+                            ?: "Не удалось определить ID группы. Проверьте chat_id в настройках"
+                        return@launch
+                    }
+                    resolvedId.getOrThrow()
+                }
+
+                val allMessages = mutableListOf<TelegramMessage>()
+                var currentOffset: Long? = 0L
+                var maxUpdateId: Long? = null
+                var iterations = 0
+                var hasMore = true
+
+                while (hasMore && iterations < 20) {
+                    iterations++
+                    val fetchResult = telegramGateway.fetchRecentMessages(token, currentOffset)
+                    if (fetchResult.isFailure) {
+                        _telegramError.value = fetchResult.exceptionOrNull()?.message
+                        break
+                    }
+
+                    val (messages, updateId) = fetchResult.getOrThrow()
+                    if (messages.isEmpty()) {
+                        hasMore = false
+                    } else {
+                        allMessages.addAll(messages)
+                        maxUpdateId = updateId
+                        currentOffset = if (updateId != null && updateId > 0) updateId + 1 else null
+                        if (messages.size < 100) {
+                            hasMore = false
                         }
                     }
                 }
-                // При явном обновлении получаем все доступные сообщения, начиная с самого начала
-                // Telegram хранит обновления в очереди до 24 часов, поэтому можем получить историю за этот период
-                val allMessages = mutableListOf<com.katapandroid.lazybones.network.TelegramMessage>()
-                var currentOffset: Long? = 0L // Начинаем с начала, чтобы получить всю доступную историю
-                var maxUpdateId: Long? = null
-                var hasMore = true
-                var iterations = 0
-                
-                // Делаем запросы пока получаем обновления (увеличиваем до 20 итераций для получения больше истории)
-                while (hasMore && iterations < 20) {
-                    iterations++
-                    val result = telegramService.fetchRecentMessages(token, currentOffset)
-                    result.fold(
-                        onSuccess = { (messages, updateId) ->
-                            if (messages.isEmpty()) {
-                                hasMore = false
-                                return@fold
-                            }
-                            allMessages.addAll(messages)
-                            maxUpdateId = updateId
-                            // Для следующего запроса используем offset = maxUpdateId + 1, чтобы получить следующие обновления
-                            currentOffset = if (updateId != null && updateId > 0) updateId + 1 else null
-                            // Если получено меньше лимита - больше обновлений нет
-                            if (messages.size < 100) {
-                                hasMore = false
-                            }
-                        },
-                        onFailure = { 
-                            // При ошибке прерываем цикл
-                            hasMore = false
-                        }
-                    )
-                }
-                
-                // Фильтруем все накопленные сообщения по нужному chatId
+
                 val filtered = allMessages.filter { it.chatId == targetChatId }
-                _telegramMessages.value = filtered.sortedByDescending { it.dateSeconds }.take(30)
-                
-                // Сохраняем offset для следующего запроса
-                val finalUpdateId = maxUpdateId
-                if (finalUpdateId != null && finalUpdateId > 0) {
-                    settingsRepository.setTelegramLastUpdateId(finalUpdateId + 1)
+                    .sortedByDescending { it.dateSeconds }
+                    .take(30)
+                _telegramMessages.value = filtered
+
+                maxUpdateId?.let { updateId ->
+                    if (updateId > 0) {
+                        settingsRepository.setTelegramLastUpdateId(updateId + 1)
+                    }
                 }
             } catch (e: Exception) {
                 _telegramError.value = e.message ?: "Неизвестная ошибка"
@@ -183,7 +171,7 @@ class ReportsViewModel(
             if (token.isBlank() || chatId.isBlank()) {
                 return Result.failure(Exception("Укажите токен и chat_id в настройках"))
             }
-            telegramService.resolveChatOpenLink(token, chatId)
+              telegramGateway.resolveChatOpenLink(token, chatId)
         } catch (e: Exception) {
             Result.failure(e)
         }

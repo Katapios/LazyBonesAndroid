@@ -67,6 +67,11 @@ class TimePoolManager(
         set(Calendar.MILLISECOND, 0)
     }.time
 
+    fun isInPoolTime(reference: Date = Date()): Boolean {
+        val (start, end) = getCurrentPoolRange(reference)
+        return reference >= start && reference <= end
+    }
+
     companion object {
         private const val MIN_POOL_LENGTH_MINUTES = 60
     }

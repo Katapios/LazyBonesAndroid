@@ -1,11 +1,12 @@
-package com.katapandroid.lazybones.ui
+package com.katapandroid.lazybones.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.katapandroid.lazybones.data.PostRepository
-import com.katapandroid.lazybones.data.SettingsRepository
-import com.katapandroid.lazybones.data.TimePoolManager
-import com.katapandroid.lazybones.data.PoolStatus
+import com.katapandroid.lazybones.core.domain.model.Post
+import com.katapandroid.lazybones.core.domain.model.PoolStatus
+import com.katapandroid.lazybones.core.domain.repository.PostRepository
+import com.katapandroid.lazybones.core.domain.repository.SettingsRepository
+import com.katapandroid.lazybones.core.domain.service.TimePoolManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,7 +47,7 @@ class MainViewModel(
     init {
         // Отслеживаем изменения отчетов и настроек
         combine(
-            postRepository.getAllPosts(),
+            postRepository.observePosts(),
             settingsRepository.unlockReportCreation,
             settingsRepository.unlockPlanCreation
         ) { posts, unlockReport, unlockPlan ->
@@ -63,7 +64,7 @@ class MainViewModel(
         }
     }
     
-    private fun updateReportStatus(posts: List<com.katapandroid.lazybones.data.Post>, unlockReport: Boolean, unlockPlan: Boolean) {
+    private fun updateReportStatus(posts: List<Post>, unlockReport: Boolean, unlockPlan: Boolean) {
         val (poolStart, poolEnd) = timePoolManager.getCurrentPoolRange()
 
         // Отчеты за текущий пул (только отчеты без checklist, с пунктами good/bad)
