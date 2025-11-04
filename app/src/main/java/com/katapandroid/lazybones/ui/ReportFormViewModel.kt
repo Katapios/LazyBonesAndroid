@@ -7,6 +7,7 @@ import com.katapandroid.lazybones.data.PostRepository
 import com.katapandroid.lazybones.data.TagRepository
 import com.katapandroid.lazybones.data.TagType
 import com.katapandroid.lazybones.data.Tag
+import com.katapandroid.lazybones.data.PoolReports
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -65,24 +66,12 @@ class ReportFormViewModel(
     }
     
     private suspend fun loadTodayReport() {
-        val (poolStart, poolEnd) = timePoolManager.getCurrentPoolRange()
-        
-        val allPosts = postRepository.getAllPostsSync()
-        val todayReport = allPosts.firstOrNull { post ->
-            val postDate = post.date
-            val isInPool = postDate >= poolStart && postDate <= poolEnd
-            val noChecklist = post.checklist.isEmpty()
-            val hasGoodOrBad = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()
-            isInPool && noChecklist && hasGoodOrBad
-        }
-        
-        // Если есть отчет за сегодня и локальные списки пустые, загружаем его пункты
-        // Не перезаписываем, если пользователь уже что-то добавил
+        val todayReport = getCurrentPoolReports().prioritized
+
         if (todayReport != null && _selectedGoodTags.value.isEmpty() && _selectedBadTags.value.isEmpty()) {
             _selectedGoodTags.value = todayReport.goodItems
             _selectedBadTags.value = todayReport.badItems
-            
-            // Заполняем поля с текстами из goodItems/badItems
+
             val goodFieldsMap = todayReport.goodItems.associateWith { TextFieldValue(it) }
             val badFieldsMap = todayReport.badItems.associateWith { TextFieldValue(it) }
             _goodFields.value = goodFieldsMap
@@ -100,18 +89,8 @@ class ReportFormViewModel(
     
     // Автоматически сохраняет черновик отчета при добавлении пункта
     suspend fun saveDraftReport(goodItems: List<String>, badItems: List<String>) {
-        // Проверяем, есть ли уже отчет за текущий пул времени
-        val (poolStart, poolEnd) = timePoolManager.getCurrentPoolRange()
-        
-        val allPosts = postRepository.getAllPostsSync()
-        val todayReport = allPosts.firstOrNull { post ->
-            val postDate = post.date
-            val isInPool = postDate >= poolStart && postDate <= poolEnd
-            val noChecklist = post.checklist.isEmpty()
-            val hasGoodOrBad = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()
-            isInPool && noChecklist && hasGoodOrBad
-        }
-        
+        val todayReport = getCurrentPoolReports().prioritized
+
         if (todayReport != null) {
             // Обновляем существующий отчет за сегодня (остается черновиком)
             val updatedPost = todayReport.copy(
@@ -167,19 +146,8 @@ class ReportFormViewModel(
     }
 
     suspend fun saveReport(goodItems: List<String>, badItems: List<String>, onSaved: () -> Unit) {
-        // Проверяем, есть ли уже отчет за текущий пул времени
-        val (poolStart, poolEnd) = timePoolManager.getCurrentPoolRange()
-        
-        // Получаем все посты и ищем отчет за текущий пул времени (без checklist, с good/bad items)
-        val allPosts = postRepository.getAllPostsSync()
-        val todayReport = allPosts.firstOrNull { post ->
-            val postDate = post.date
-            val isInPool = postDate >= poolStart && postDate <= poolEnd
-            val noChecklist = post.checklist.isEmpty()
-            val hasGoodOrBad = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()
-            isInPool && noChecklist && hasGoodOrBad
-        }
-        
+        val todayReport = getCurrentPoolReports().prioritized
+
         if (todayReport != null) {
             // Обновляем существующий отчет за сегодня и помечаем как НЕ черновик
             val updatedPost = todayReport.copy(
@@ -228,4 +196,7 @@ class ReportFormViewModel(
             onSaved()
         }
     }
+
+    private suspend fun getCurrentPoolReports(): PoolReports =
+        timePoolManager.classifyReportsInCurrentPool(postRepository.getAllPostsSync())
 } 
