@@ -1,4 +1,4 @@
-package com.katapandroid.lazybones.ui.theme
+package com.katapandroid.lazybones.core.designsystem.theme
 
 import android.app.Activity
 import android.os.Build

@@ -1,4 +1,4 @@
-package com.katapandroid.lazybones.ui.theme
+package com.katapandroid.lazybones.core.designsystem.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

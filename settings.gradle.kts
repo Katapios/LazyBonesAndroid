@@ -20,4 +20,18 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "LazyBones"
-include(":app")
+include(
+    ":app",
+    ":core:designsystem",
+    ":core:domain",
+    ":core:database",
+    ":core:preferences",
+    ":core:network",
+    ":core:notification",
+    ":feature:home",
+    ":feature:plan",
+    ":feature:reports",
+    ":feature:voicenotes",
+    ":feature:settings",
+    ":feature:widget"
+)

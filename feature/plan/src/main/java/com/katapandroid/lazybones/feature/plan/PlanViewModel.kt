@@ -1,8 +1,14 @@
-package com.katapandroid.lazybones.ui
+package com.katapandroid.lazybones.feature.plan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.katapandroid.lazybones.data.*
+import com.katapandroid.lazybones.core.domain.model.PlanItem
+import com.katapandroid.lazybones.core.domain.model.Post
+import com.katapandroid.lazybones.core.domain.model.Tag
+import com.katapandroid.lazybones.core.domain.model.TagType
+import com.katapandroid.lazybones.core.domain.repository.PlanItemRepository
+import com.katapandroid.lazybones.core.domain.repository.PostRepository
+import com.katapandroid.lazybones.core.domain.repository.TagRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,9 +30,9 @@ class PlanViewModel(
     val badTags: StateFlow<List<Tag>> = _badTags.asStateFlow()
 
     init {
-        planItemRepository.getAll().onEach { _planItems.value = it }.launchIn(viewModelScope)
-        tagRepository.getByType(TagType.GOOD).onEach { _goodTags.value = it }.launchIn(viewModelScope)
-        tagRepository.getByType(TagType.BAD).onEach { _badTags.value = it }.launchIn(viewModelScope)
+        planItemRepository.observePlanItems().onEach { _planItems.value = it }.launchIn(viewModelScope)
+        tagRepository.observeTagsByType(TagType.GOOD).onEach { _goodTags.value = it }.launchIn(viewModelScope)
+        tagRepository.observeTagsByType(TagType.BAD).onEach { _badTags.value = it }.launchIn(viewModelScope)
     }
 
     fun addPlanItem(text: String) = viewModelScope.launch {
@@ -38,10 +44,10 @@ class PlanViewModel(
     fun deletePlanItem(item: PlanItem) = viewModelScope.launch {
         planItemRepository.delete(item)
     }
-    
+
     suspend fun clearAllPlanItems() {
         try {
-            planItemRepository.deleteAll()
+            planItemRepository.clear()
         } catch (e: Exception) {
             android.util.Log.e("PlanViewModel", "Error clearing plan items", e)
             throw e
@@ -72,10 +78,6 @@ class PlanViewModel(
             badCount = 0
         )
         postRepository.insert(post)
-        
-        // Очищаем все пункты плана после создания отчёта
-        planItems.value.forEach { item ->
-            planItemRepository.delete(item)
-        }
+        planItemRepository.clear()
     }
-} 
+}
