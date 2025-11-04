@@ -53,7 +53,19 @@ dependencies {
     implementation("androidx.wear.compose:compose-foundation:1.2.1")
     implementation("androidx.wear.compose:compose-navigation:1.2.1")
     
-    // Watch Face - отложено (требует специальных зависимостей)
+    // Watch Face API - исключаем activity-compose из транзитивных зависимостей
+    implementation("androidx.wear.watchface:watchface:1.2.1") {
+        exclude(group = "androidx.activity", module = "activity-compose")
+    }
+    implementation("androidx.wear.watchface:watchface-complications-data:1.2.1") {
+        exclude(group = "androidx.activity", module = "activity-compose")
+    }
+    implementation("androidx.wear.watchface:watchface-complications-data-source:1.2.1") {
+        exclude(group = "androidx.activity", module = "activity-compose")
+    }
+    implementation("androidx.wear.watchface:watchface-complications-data-source-ktx:1.2.1") {
+        exclude(group = "androidx.activity", module = "activity-compose")
+    }
     
     // Compose
     implementation(platform(libs.androidx.compose.bom))
@@ -66,7 +78,8 @@ dependencies {
     // Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.activity.compose)
+    // Используем явную версию activity-compose вместо libs для избежания конфликтов
+    implementation("androidx.activity:activity-compose:1.8.2")
     
     // Wearable Data Layer для синхронизации с телефоном
     implementation("com.google.android.gms:play-services-wearable:18.1.0")

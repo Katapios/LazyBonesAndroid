@@ -29,6 +29,7 @@ import com.google.android.gms.wearable.CapabilityClient
 import com.katapandroid.lazybones.wear.sync.WearDataReceiver
 import com.katapandroid.lazybones.wear.screens.PlansScreen
 import com.katapandroid.lazybones.wear.screens.ReportsScreen
+import com.katapandroid.lazybones.wear.screens.StatsScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
@@ -130,7 +131,7 @@ class MainActivity : ComponentActivity() {
             }
             
             @OptIn(ExperimentalFoundationApi::class)
-            val pagerState = rememberPagerState(pageCount = { 3 })
+            val pagerState = rememberPagerState(pageCount = { 4 })
             
             var connectionInfo by remember { mutableStateOf("") }
             
@@ -802,6 +803,11 @@ class MainActivity : ComponentActivity() {
                             )
                             1 -> PlansScreen(plans = dataState.plans)
                             2 -> ReportsScreen(reports = dataState.reports)
+                            3 -> StatsScreen(
+                                reports = dataState.reports,
+                                plans = dataState.plans,
+                                reportStatus = dataState.reportStatus
+                            )
                         }
                     }
                     
@@ -812,7 +818,7 @@ class MainActivity : ComponentActivity() {
                             .padding(bottom = 4.dp),
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        repeat(3) { index ->
+                        repeat(4) { index ->
                             Box(
                                 modifier = Modifier
                                     .padding(2.dp)
