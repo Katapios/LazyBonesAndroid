@@ -192,39 +192,24 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
                 val postDao = db.postDao()
                 val planItemDao = db.planItemDao()
 
-                // Получаем посты и пункты плана
-                val posts = withContext(Dispatchers.IO) { postDao.getAllPostsSync() }
-                val planItems = withContext(Dispatchers.IO) { planItemDao.getAllSync() }
+                  // Получаем посты и пункты плана
+                  val posts = withContext(Dispatchers.IO) { postDao.getAllPostsSync() }
+                  val planItems = withContext(Dispatchers.IO) { planItemDao.getAllSync() }
 
-                // Фильтруем посты по текущему пулу времени
-                val settingsRepository = SettingsRepository(context)
-                val timePoolManager = TimePoolManager(settingsRepository)
-                val (poolStart, poolEnd) = timePoolManager.getCurrentPoolRange()
+                  // Фильтруем посты по текущему пулу времени
+                  val settingsRepository = SettingsRepository(context)
+                  val timePoolManager = TimePoolManager(settingsRepository)
+                  val reports = timePoolManager.classifyReportsInCurrentPool(posts)
+                  val countersSource = reports.prioritized
+                  val goodCount = countersSource?.goodItems?.size ?: 0
+                  val badCount = countersSource?.badItems?.size ?: 0
 
-                // Отчеты за текущий пул (без checklist, но с пунктами good/bad), учитываем и черновики
-                val reportsInPool = posts.filter { post ->
-                    val postDate = post.date
-                    val isInPool = postDate >= poolStart && postDate <= poolEnd
-                    val noChecklist = post.checklist.isEmpty()
-                    val hasGoodOrBad = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()
-                    isInPool && noChecklist && hasGoodOrBad
-                }
-                val publishedReport = reportsInPool.firstOrNull { !it.isDraft && it.published }
-                val savedReport = reportsInPool.firstOrNull { !it.isDraft && !it.published }
-                val draftReport = reportsInPool.firstOrNull { it.isDraft }
-
-                // Счетчики берем с приоритетом: опубликованный → сохраненный → черновик
-                val countersSource = publishedReport ?: savedReport ?: draftReport
-                val goodCount = countersSource?.goodItems?.size ?: 0
-                val badCount = countersSource?.badItems?.size ?: 0
-
-                // Определяем статус отчета
-                val reportStatus = when {
-                    publishedReport != null -> "Отчет опубликован"
-                    savedReport != null -> "Отчет сформирован"
-                    draftReport != null -> "В процессе"
-                    else -> "Отчет не заполнен"
-                }
+                  val reportStatus = when {
+                      reports.published != null -> "Отчет опубликован"
+                      reports.saved != null -> "Отчет сформирован"
+                      reports.draft != null -> "В процессе"
+                      else -> "Отчет не заполнен"
+                  }
 
                 // Получаем статус пула и таймер
                 val poolStatusForTimer = timePoolManager.getPoolStatus()
