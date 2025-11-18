@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -808,6 +809,30 @@ private fun ReportFormTab(
 
         // Поле для добавления кастомного пункта (good/bad)
         var customInput by remember { mutableStateOf(TextFieldValue()) }
+        
+        // Распознавание речи
+        val speechRecognizer = rememberSpeechRecognizer(
+            onResult = { recognizedText ->
+                if (recognizedText.isEmpty()) {
+                    // Очищаем поле
+                    customInput = TextFieldValue()
+                    showSaveTagBubble = false
+                } else {
+                    // Устанавливаем распознанный текст
+                    customInput = TextFieldValue(recognizedText)
+                    if (recognizedText.trim().isNotEmpty()) {
+                        lastInputText = recognizedText.trim()
+                        showSaveTagBubble = true
+                    }
+                }
+            },
+            onError = { errorMessage ->
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(errorMessage)
+                }
+            }
+        )
+        
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -850,7 +875,34 @@ private fun ReportFormTab(
                     ),
                     textStyle = MaterialTheme.typography.bodyLarge
                 )
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(8.dp))
+                // Кнопка микрофона
+                IconButton(
+                    onClick = {
+                        speechRecognizer.startListening(customInput.text)
+                    },
+                    modifier = Modifier.size(48.dp),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = if (speechRecognizer.isActive) 
+                            MaterialTheme.colorScheme.secondaryContainer
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Mic,
+                        contentDescription = "Распознавание речи",
+                        tint = if (speechRecognizer.isActive)
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        else if (selectedTab == 0)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+                // Кнопка добавления
                 IconButton(
                     onClick = {
                         val text = customInput.text.trim()
