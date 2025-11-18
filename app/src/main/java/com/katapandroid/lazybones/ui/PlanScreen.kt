@@ -120,6 +120,24 @@ private fun PlanTab(
         com.katapandroid.lazybones.widget.LazyBonesWidgetProviderNarrow.updateAllWidgets(context)
     }
 
+    // Распознавание речи для планов
+    val speechRecognizer = rememberSpeechRecognizer(
+        onResult = { recognizedText ->
+            if (recognizedText.isEmpty()) {
+                // Очищаем поле
+                input = TextFieldValue()
+            } else {
+                // Устанавливаем распознанный текст
+                input = TextFieldValue(recognizedText)
+            }
+        },
+        onError = { errorMessage ->
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(errorMessage)
+            }
+        }
+    )
+
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
@@ -136,6 +154,31 @@ private fun PlanTab(
                 )
             )
             Spacer(Modifier.width(8.dp))
+            // Кнопка микрофона
+            IconButton(
+                onClick = {
+                    speechRecognizer.startListening(input.text)
+                },
+                modifier = Modifier.size(48.dp),
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = if (speechRecognizer.isActive) 
+                        MaterialTheme.colorScheme.secondaryContainer
+                    else
+                        MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Icon(
+                    Icons.Default.Mic,
+                    contentDescription = "Распознавание речи",
+                    tint = if (speechRecognizer.isActive)
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    else
+                        MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            // Кнопка добавления
             IconButton(
                 onClick = {
                     if (input.text.isNotBlank()) {
