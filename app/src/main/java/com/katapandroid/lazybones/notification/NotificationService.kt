@@ -6,15 +6,23 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.katapandroid.lazybones.data.SettingsRepository
+import androidx.core.content.edit
 import java.util.Calendar
 
 class NotificationService(private val context: Context) {
     private val settings by lazy { SettingsRepository(context) }
+    private val alarmPrefs by lazy {
+        context.getSharedPreferences("lazybones_notification_service", Context.MODE_PRIVATE)
+    }
+    
+    companion object {
+        private const val KEY_ACTIVE_CODES = "active_alarm_codes"
+    }
 
     fun scheduleNotifications() {
         val enabled = settings.getNotificationsEnabled()
         if (!enabled) {
-            cancelAllScheduled()
+            cancelTrackedRequests()
             return
         }
 
@@ -25,14 +33,11 @@ class NotificationService(private val context: Context) {
             listOf(12 to 0, 21 to 0)
         }
 
-        // Сначала отменим уже запланированные на сегодня (по тем же requestCode)
-        cancelAllScheduled()
+        cancelTrackedRequests()
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
         val now = System.currentTimeMillis()
-        val calendar = Calendar.getInstance()
-
+        val scheduledCodes = mutableListOf<Int>()
         times.forEachIndexed { index, (hour, minute) ->
             val triggerTime = Calendar.getInstance().apply {
                 timeInMillis = now
@@ -46,25 +51,40 @@ class NotificationService(private val context: Context) {
                 }
             }.timeInMillis
 
-            val pendingIntent = createAlarmIntent(requestCode = index)!!
+            val requestCode = mode * 100 + index
+            val pendingIntent = createAlarmIntent(requestCode = requestCode)!!
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
             } else {
                 alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
             }
+            scheduledCodes += requestCode
         }
+
+        persistActiveCodes(scheduledCodes)
     }
 
-    private fun cancelAllScheduled() {
+    private fun cancelTrackedRequests() {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        // Мы используем фиксированные requestCode 0..4 для режима 0 и 0..1 для режима 1 — отменим диапазон 0..4 на всякий случай
-        (0..4).forEach { code ->
-            val pi = createAlarmIntent(requestCode = code, flags = PendingIntent.FLAG_NO_CREATE)
-            if (pi != null) {
-                alarmManager.cancel(pi)
-                pi.cancel()
+        val stored = alarmPrefs.getString(KEY_ACTIVE_CODES, null) ?: return
+        stored.split(",")
+            .mapNotNull { it.toIntOrNull() }
+            .forEach { code ->
+                val pi = createAlarmIntent(requestCode = code, flags = PendingIntent.FLAG_NO_CREATE)
+                if (pi != null) {
+                    alarmManager.cancel(pi)
+                    pi.cancel()
+                }
             }
+        alarmPrefs.edit { remove(KEY_ACTIVE_CODES) }
+    }
+
+    private fun persistActiveCodes(codes: List<Int>) {
+        if (codes.isEmpty()) {
+            alarmPrefs.edit { remove(KEY_ACTIVE_CODES) }
+        } else {
+            alarmPrefs.edit { putString(KEY_ACTIVE_CODES, codes.joinToString(",")) }
         }
     }
 

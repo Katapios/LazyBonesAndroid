@@ -3,28 +3,18 @@ package com.katapandroid.lazybones.wear.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.*
-import androidx.compose.ui.graphics.Color
+import com.katapandroid.lazybones.wear.model.ReportItem
 import java.text.SimpleDateFormat
 import java.util.*
-
-data class ReportItem(
-    val id: Long,
-    val date: Long,
-    val goodCount: Int,
-    val badCount: Int,
-    val published: Boolean,
-    val goodItems: List<String>,
-    val badItems: List<String>,
-    val checklist: List<String>
-)
 
 @Composable
 fun ReportsScreen(reports: List<ReportItem>) {

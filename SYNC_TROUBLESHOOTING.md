@@ -30,7 +30,7 @@ adb logcat | grep WearDataSync
 
 ### Логи с часов (прием данных):
 ```bash
-adb -s <device_id> logcat | grep -E "WearDataReceiver|MainActivity"
+adb -s <device_id> logcat | grep -E "WearDataListener|MainActivity"
 ```
 
 Должны увидеть:

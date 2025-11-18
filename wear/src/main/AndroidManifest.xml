@@ -81,13 +81,6 @@
                 android:name="com.google.android.gms.wearable.message.api.enabled"
                 android:value="true" />
         </service>
-        
-        <!-- Старый сервис оставляем для совместимости (можно удалить позже) -->
-        <service
-            android:name=".sync.WearDataService"
-            android:exported="false"
-            android:enabled="false" />
-        
     </application>
 
 </manifest>

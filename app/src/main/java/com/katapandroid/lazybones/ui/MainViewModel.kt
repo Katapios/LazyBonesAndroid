@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import java.util.*
 
 class MainViewModel(
@@ -72,7 +73,7 @@ class MainViewModel(
             
             // Периодически обновляем статус, таймер и синхронизируем
             var syncCounter = 0
-            while (true) {
+            while (isActive) {
                 delay(1000) // Обновляем каждую секунду
                 updatePoolStatus()
                 updateTimer()
@@ -90,38 +91,18 @@ class MainViewModel(
     private fun updateReportStatus(posts: List<com.katapandroid.lazybones.data.Post>, unlockReport: Boolean, unlockPlan: Boolean) {
         val (poolStart, poolEnd) = timePoolManager.getCurrentPoolRange()
 
-        // Отчеты за текущий пул (только отчеты без checklist, с пунктами good/bad)
-        val reportsInPool = posts.filter { post ->
-            val postDate = post.date
-            val isInPool = postDate >= poolStart && postDate <= poolEnd
-            val noChecklist = post.checklist.isEmpty()
-            val hasGoodOrBad = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty()
-            isInPool && noChecklist && hasGoodOrBad
-        }
-
-        val publishedReport = reportsInPool.firstOrNull { !it.isDraft && it.published }
-        val savedReport = reportsInPool.firstOrNull { !it.isDraft && !it.published }
-        val draftReport = reportsInPool.firstOrNull { it.isDraft }
-
-        // План за текущий пул (посты с checklist)
-        val todayPlan = posts.firstOrNull { post ->
-            val postDate = post.date
-            val isInPool = postDate >= poolStart && postDate <= poolEnd
-            val hasChecklist = post.checklist.isNotEmpty()
-            isInPool && hasChecklist
-        }
-
-        // Счетчики берем из приоритетного отчета: опубликованный -> сохраненный -> черновик
-        val countersSource = publishedReport ?: savedReport ?: draftReport
-        val newGoodCount = countersSource?.goodItems?.size ?: 0
-        val newBadCount = countersSource?.badItems?.size ?: 0
+        val analysis = ReportStatusAnalyzer.analyze(posts, poolStart, poolEnd)
+        val newGoodCount = analysis.goodCount
+        val newBadCount = analysis.badCount
         
         _goodCount.value = newGoodCount
         _badCount.value = newBadCount
         
         // Синхронизируем все данные с часами
-        val goodItemsList = countersSource?.goodItems ?: emptyList()
-        val badItemsList = countersSource?.badItems ?: emptyList()
+        val goodItemsList = (analysis.publishedReport ?: analysis.savedReport ?: analysis.draftReport)
+            ?.goodItems ?: emptyList()
+        val badItemsList = (analysis.publishedReport ?: analysis.savedReport ?: analysis.draftReport)
+            ?.badItems ?: emptyList()
         
         // Отправляем синхронизацию сразу после обновления статуса
         viewModelScope.launch {
@@ -160,16 +141,16 @@ class MainViewModel(
 
         // Статус отчета по приоритету
         _reportStatus.value = when {
-            publishedReport != null -> ReportStatus.PUBLISHED
-            savedReport != null -> ReportStatus.SAVED
-            draftReport != null -> ReportStatus.IN_PROGRESS
+            analysis.publishedReport != null -> ReportStatus.PUBLISHED
+            analysis.savedReport != null -> ReportStatus.SAVED
+            analysis.draftReport != null -> ReportStatus.IN_PROGRESS
             else -> ReportStatus.NOT_FILLED
         }
 
         // Возможность создания отчета/плана
         val isInPoolTime = timePoolManager.isInPoolTime()
-        val reportPublished = publishedReport != null
-        val planPublished = todayPlan?.published == true
+        val reportPublished = analysis.publishedReport != null
+        val planPublished = analysis.planPost?.published == true
 
         _canCreateReport.value = (isInPoolTime && (!reportPublished || unlockReport))
         _canCreatePlan.value = (isInPoolTime && (!planPublished || unlockPlan))

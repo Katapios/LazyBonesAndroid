@@ -3,7 +3,7 @@ package com.katapandroid.lazybones.wear.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -11,12 +11,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.*
-
-data class PlanItem(
-    val id: Long,
-    val text: String,
-    val date: Long = 0L
-)
+import com.katapandroid.lazybones.wear.model.PlanItem
 
 @Composable
 fun PlansScreen(plans: List<PlanItem>) {

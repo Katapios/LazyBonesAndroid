@@ -12,6 +12,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.*
+import com.katapandroid.lazybones.wear.model.PlanItem
+import com.katapandroid.lazybones.wear.model.ReportItem
 import java.text.SimpleDateFormat
 import java.util.*
 

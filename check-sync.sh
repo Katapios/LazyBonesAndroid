@@ -9,8 +9,8 @@ echo "Логи синхронизации с телефона (WearDataSync):"
 adb logcat -d | grep "WearDataSync" | tail -20
 
 echo ""
-echo "Логи приема данных на часах (WearDataReceiver):"
-adb -s adb-RFAX8039ZXE-bHMrjm._adb-tls-connect._tcp logcat -d | grep "WearDataReceiver\|MainActivity" | tail -20
+echo "Логи приема данных на часах (WearDataListener):"
+adb -s adb-RFAX8039ZXE-bHMrjm._adb-tls-connect._tcp logcat -d | grep "WearDataListener\|MainActivity" | tail -20
 
 echo ""
 echo "Подключенные устройства:"

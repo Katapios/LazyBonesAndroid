@@ -1,9 +1,12 @@
 package com.katapandroid.lazybones.wear.sync
 
-import android.content.Context
-import android.content.SharedPreferences
 import android.util.Log
 import com.google.android.gms.wearable.*
+import com.katapandroid.lazybones.wear.data.WearDataRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 /**
@@ -11,6 +14,9 @@ import org.json.JSONObject
  * Это правильный способ для Wear OS - система автоматически доставляет сообщения
  */
 class WearDataListenerService : WearableListenerService() {
+    private val serviceJob = SupervisorJob()
+    private val serviceScope = CoroutineScope(serviceJob + Dispatchers.IO)
+    private val repository by lazy { WearDataRepository.getInstance(applicationContext) }
     
     companion object {
         private const val TAG = "WearDataListener"
@@ -69,93 +75,23 @@ class WearDataListenerService : WearableListenerService() {
     private fun parseAndSaveData(dataString: String) {
         try {
             val json = JSONObject(dataString)
-            val goodCount = json.getInt("goodCount")
-            val badCount = json.getInt("badCount")
-            val reportStatus = if (json.has("reportStatus")) json.getString("reportStatus") else null
-            val poolStatus = if (json.has("poolStatus")) json.getString("poolStatus") else null
-            val timerText = if (json.has("timerText")) json.getString("timerText") else null
-            
-            val goodItems = mutableListOf<String>()
-            if (json.has("goodItems")) {
-                val goodItemsArray = json.getJSONArray("goodItems")
-                for (i in 0 until goodItemsArray.length()) {
-                    goodItems.add(goodItemsArray.getString(i))
-                }
+            Log.d(
+                TAG,
+                "✅ Parsed data payload: good=${json.optInt("goodCount")}, bad=${json.optInt("badCount")}, plans=${json.optJSONArray("plans")?.length() ?: 0}, reports=${json.optJSONArray("reports")?.length() ?: 0}"
+            )
+            serviceScope.launch {
+                runCatching { repository.updateFromJson(json) }
+                    .onFailure { Log.e(TAG, "❌ Error saving data to repository", it) }
             }
-            
-            val badItems = mutableListOf<String>()
-            if (json.has("badItems")) {
-                val badItemsArray = json.getJSONArray("badItems")
-                for (i in 0 until badItemsArray.length()) {
-                    badItems.add(badItemsArray.getString(i))
-                }
-            }
-            
-            // Парсим планы
-            val plansJson = if (json.has("plans") && !json.isNull("plans")) {
-                val plansArray = json.getJSONArray("plans")
-                val plansJsonString = plansArray.toString()
-                Log.d(TAG, "📋 Parsed plansJson: $plansJsonString")
-                Log.d(TAG, "📋 Plans array length: ${plansArray.length()}")
-                // Проверяем, что дата есть в планах
-                if (plansArray.length() > 0) {
-                    val firstPlan = plansArray.getJSONObject(0)
-                    if (firstPlan.has("date")) {
-                        Log.d(TAG, "✅ First plan has date: ${firstPlan.getLong("date")}")
-                    } else {
-                        Log.w(TAG, "⚠️ First plan has NO date field!")
-                    }
-                }
-                plansJsonString
-            } else {
-                Log.w(TAG, "⚠️ No 'plans' field in JSON or it's null")
-                "[]"
-            }
-            
-            // Парсим отчёты
-            val reportsJson = if (json.has("reports") && !json.isNull("reports")) {
-                val reportsArray = json.getJSONArray("reports")
-                reportsArray.toString()
-            } else {
-                Log.w(TAG, "⚠️ No 'reports' field in JSON or it's null")
-                "[]"
-            }
-            
-            Log.d(TAG, "✅ Parsed data: good=$goodCount, bad=$badCount, plans=${json.optJSONArray("plans")?.length() ?: 0}, reports=${json.optJSONArray("reports")?.length() ?: 0}")
-            
-            saveDataToSharedPreferences(goodCount, badCount, reportStatus, poolStatus, timerText, goodItems, badItems, plansJson, reportsJson)
-            
         } catch (e: Exception) {
             Log.e(TAG, "❌ Error parsing data", e)
             e.printStackTrace()
         }
     }
-    
-    private fun saveDataToSharedPreferences(
-        goodCount: Int,
-        badCount: Int,
-        reportStatus: String?,
-        poolStatus: String?,
-        timerText: String?,
-        goodItems: List<String>,
-        badItems: List<String>,
-        plansJson: String,
-        reportsJson: String
-    ) {
-        val prefs = getSharedPreferences("wear_data", Context.MODE_PRIVATE)
-        prefs.edit()
-            .putInt("goodCount", goodCount)
-            .putInt("badCount", badCount)
-            .putString("reportStatus", reportStatus)
-            .putString("poolStatus", poolStatus)
-            .putString("timerText", timerText)
-            .putStringSet("goodItems", goodItems.toSet())
-            .putStringSet("badItems", badItems.toSet())
-            .putString("plansJson", plansJson)
-            .putString("reportsJson", reportsJson)
-            .apply()
-        
-        Log.d(TAG, "💾 Data saved to SharedPreferences: good=$goodCount, bad=$badCount, timer=$timerText")
+
+    override fun onDestroy() {
+        super.onDestroy()
+        serviceJob.cancel()
     }
 }
 

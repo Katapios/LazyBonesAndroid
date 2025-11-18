@@ -1,6 +1,8 @@
 package com.katapandroid.lazybones.network
 
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -11,6 +13,8 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class TelegramService {
     
@@ -19,6 +23,13 @@ class TelegramService {
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
+    private val rateLimitMutex = Mutex()
+    @Volatile
+    private var lastRequestTimestamp = 0L
+    
+    companion object {
+        private const val RATE_LIMIT_INTERVAL_MS = 1000L
+    }
     
     suspend fun sendTestMessage(token: String, chatId: String): Result<String> = withContext(Dispatchers.IO) {
         try {
@@ -93,38 +104,30 @@ class TelegramService {
     }
     
     private suspend fun sendMessage(token: String, chatId: String, text: String): Result<String> {
-        return try {
+        return runCatching {
+            executeTelegramRequest(
+                buildRequest = {
             val url = "https://api.telegram.org/bot$token/sendMessage"
-            
             val formBody = FormBody.Builder()
                 .add("chat_id", chatId)
                 .add("text", text)
                 .add("parse_mode", "HTML")
                 .build()
-            
-            val request = Request.Builder()
+                    Request.Builder()
                 .url(url)
                 .post(formBody)
                 .build()
-            
-            val response = httpClient.newCall(request).execute()
-            
-            if (response.isSuccessful) {
-                val responseBody = response.body?.string()
-                val jsonResponse = JSONObject(responseBody ?: "{}")
-                
-                if (jsonResponse.getBoolean("ok")) {
-                    Result.success("Message sent successfully")
+                }
+            ) { body ->
+                val jsonResponse = JSONObject(body.ifEmpty { "{}" })
+                if (jsonResponse.optBoolean("ok")) {
+                    "Message sent successfully"
                 } else {
                     val errorCode = jsonResponse.optInt("error_code", -1)
                     val description = jsonResponse.optString("description", "Unknown error")
-                    Result.failure(Exception("Telegram API error: $errorCode - $description"))
+                    throw Exception("Telegram API error: $errorCode - $description")
                 }
-            } else {
-                Result.failure(Exception("HTTP error: ${response.code} - ${response.message}"))
             }
-        } catch (e: Exception) {
-            Result.failure(e)
         }
     }
 
@@ -132,58 +135,41 @@ class TelegramService {
         token: String,
         offset: Long?
     ): Result<Pair<List<TelegramMessage>, Long?>> = withContext(Dispatchers.IO) {
-        try {
+        runCatching {
+            executeTelegramRequest(
+                buildRequest = {
             val baseUrl = "https://api.telegram.org/bot$token/getUpdates"
-            // Для получения новых сообщений используем offset (если есть)
-            // Если offset нет или 0 - получаем последние обновления
             val url = buildString {
                 append(baseUrl)
-                append("?limit=100") // Увеличиваем лимит для получения больше сообщений
+                        append("?limit=100")
                 if (offset != null && offset > 0) {
                     append("&offset=")
                     append(offset)
                 }
-                // allowed_updates=["message","channel_post"] (URL-encoded)
                 append("&allowed_updates=%5B%22message%22%2C%22channel_post%22%5D")
             }
-
-            val request = Request.Builder()
+                    Request.Builder()
                 .url(url)
                 .get()
                 .build()
-
-            val response = httpClient.newCall(request).execute()
-            if (!response.isSuccessful) {
-                val errorBody = response.body?.string() ?: ""
-                val errorMsg = try {
-                    val errorJson = JSONObject(errorBody)
-                    errorJson.optString("description", "HTTP error: ${response.code}")
-                } catch (e: Exception) {
-                    "HTTP error: ${response.code} - ${response.message}"
                 }
-                return@withContext Result.failure(Exception(errorMsg))
-            }
-
-            val bodyStr = response.body?.string() ?: "{}"
-            val json = JSONObject(bodyStr)
-            if (!json.optBoolean("ok", false)) {
-                val description = json.optString("description", "Unknown error")
-                val errorCode = json.optInt("error_code", 0)
-                val errorMsg = if (errorCode > 0) {
-                    "Telegram API error ($errorCode): $description"
-                } else {
-                    "Telegram API error: $description"
+            ) { bodyStr ->
+                val json = JSONObject(bodyStr.ifEmpty { "{}" })
+                if (!json.optBoolean("ok", false)) {
+                    val description = json.optString("description", "Unknown error")
+                    val errorCode = json.optInt("error_code", 0)
+                    val errorMsg = if (errorCode > 0) {
+                        "Telegram API error ($errorCode): $description"
+                    } else {
+                        "Telegram API error: $description"
+                    }
+                    throw Exception(errorMsg)
                 }
-                return@withContext Result.failure(Exception(errorMsg))
-            }
-
-            val result = json.optJSONArray("result")
-            val messages = mutableListOf<TelegramMessage>()
-            var maxUpdateId: Long? = offset
-            
-            if (result != null) {
-                for (i in 0 until result.length()) {
-                    try {
+                val result = json.optJSONArray("result")
+                val messages = mutableListOf<TelegramMessage>()
+                var maxUpdateId: Long? = offset
+                if (result != null) {
+                    for (i in 0 until result.length()) {
                         val upd = result.optJSONObject(i) ?: continue
                         val updateId = upd.optLong("update_id")
                         if (maxUpdateId == null || updateId > maxUpdateId) {
@@ -196,9 +182,8 @@ class TelegramService {
                         
                         val node = message ?: channelPost ?: editedMessage ?: editedChannelPost ?: continue
                         val chat = node.optJSONObject("chat") ?: continue
-                        val chatId = chat.optLong("id")
+                        val chatIdValue = chat.optLong("id")
                         
-                        // Получаем текст из разных возможных источников
                         val text = node.optString("text", "").trim()
                         val caption = node.optString("caption", "").trim()
                         val messageText = if (text.isNotEmpty()) text else caption
@@ -208,29 +193,80 @@ class TelegramService {
                             val messageId = node.optLong("message_id", 0)
                             messages.add(
                                 TelegramMessage(
-                                    chatId = chatId,
+                                    chatId = chatIdValue,
                                     messageId = messageId,
                                     dateSeconds = date,
                                     text = messageText
                                 )
                             )
                         }
-                    } catch (e: Exception) {
-                        // Пропускаем некорректные обновления, продолжаем обработку остальных
-                        continue
                     }
                 }
+                messages to maxUpdateId
             }
-            
-            // Если offset был установлен, но обновлений нет - это нормально (нет новых сообщений)
-            Result.success(messages to maxUpdateId)
-        } catch (e: Exception) {
-            Result.failure(Exception("Ошибка при получении сообщений: ${e.message ?: e.javaClass.simpleName}"))
         }
     }
 
+    private suspend fun <T> executeTelegramRequest(
+        buildRequest: () -> Request,
+        parser: (String) -> T
+    ): T {
+        var attempt = 0
+        var lastError: Exception? = null
+        while (attempt < 2) {
+            try {
+                val request = buildRequest()
+                val response = runWithRateLimit {
+                    httpClient.newCall(request).execute()
+                }
+                response.use { resp ->
+                    val bodyStr = resp.body?.string().orEmpty()
+                    if (resp.isSuccessful) {
+                        return parser(bodyStr)
+                    }
+                    if (resp.code == 429) {
+                        val retryAfter = parseRetryAfter(bodyStr)
+                        if (retryAfter > 0 && attempt == 0) {
+                            Log.w("TelegramService", "Rate limited, retrying after $retryAfter seconds")
+                            delay(retryAfter * 1000)
+                            attempt++
+                            return@use
+                        }
+                    }
+                    throw Exception("HTTP error: ${resp.code} - ${resp.message} ${bodyStr.take(200)}")
+                }
+            } catch (e: Exception) {
+                lastError = e
+                break
+            }
+        }
+        throw lastError ?: IllegalStateException("Unknown Telegram API error")
+    }
+
+    private fun parseRetryAfter(body: String): Long {
+        return try {
+            val json = JSONObject(body)
+            json.optJSONObject("parameters")?.optLong("retry_after", 0L) ?: 0L
+        } catch (e: Exception) {
+            0L
+        }
+    }
+
+    private suspend fun <T> runWithRateLimit(block: () -> T): T {
+        return rateLimitMutex.withLock {
+            val now = System.currentTimeMillis()
+            val elapsed = now - lastRequestTimestamp
+            val wait = RATE_LIMIT_INTERVAL_MS - elapsed
+            if (wait > 0) {
+                delay(wait)
+            }
+            val result = block()
+            lastRequestTimestamp = System.currentTimeMillis()
+            result
+        }
+    }
     suspend fun resolveChatOpenLink(token: String, chatId: String): Result<String> = withContext(Dispatchers.IO) {
-        try {
+        runCatching {
             // Очищаем chat_id от переносов строк и берем первый валидный ID
             val cleaned = chatId.trim()
                 .lines()
@@ -255,46 +291,25 @@ class TelegramService {
                 Exception("Некорректный chat_id: '$cleaned'. Ожидается числовой ID (например: -1001234567890) или username (например: @groupname)")
             )
             
-            // Пробуем получить информацию о чате через API
             val url = "https://api.telegram.org/bot$token/getChat?chat_id=$idLong"
-            val request = Request.Builder().url(url).get().build()
-            val response = httpClient.newCall(request).execute()
-            
-            if (!response.isSuccessful) {
-                val errorBody = response.body?.string() ?: ""
-                val errorMsg = try {
-                    val errorJson = JSONObject(errorBody)
-                    val description = errorJson.optString("description", "Unknown error")
-                    when {
-                        description.contains("chat not found", ignoreCase = true) -> 
-                            "Группа не найдена. Убедитесь, что chat_id корректный и бот является участником группы."
-                        description.contains("not enough rights", ignoreCase = true) -> 
-                            "Недостаточно прав. Бот должен быть участником группы."
-                        else -> "Ошибка при получении информации о группе: $description"
-                    }
-                } catch (e: Exception) {
-                    "HTTP error: ${response.code} - ${response.message}"
-                }
-                return@withContext Result.failure(Exception(errorMsg))
-            }
-            
-            val bodyStr = response.body?.string() ?: "{}"
-            val json = JSONObject(bodyStr)
+            val bodyStr = executeTelegramRequest(
+                buildRequest = { Request.Builder().url(url).get().build() },
+                parser = { it }
+            )
+            val json = JSONObject(bodyStr.ifEmpty { "{}" })
             if (!json.optBoolean("ok", false)) {
                 val description = json.optString("description", "Unknown error")
                 val errorMsg = when {
-                    description.contains("chat not found", ignoreCase = true) -> 
+                    description.contains("chat not found", ignoreCase = true) ->
                         "Группа не найдена. Проверьте chat_id в настройках."
-                    description.contains("not enough rights", ignoreCase = true) -> 
+                    description.contains("not enough rights", ignoreCase = true) ->
                         "Недостаточно прав для доступа к группе."
                     else -> "Telegram API error: $description"
                 }
-                return@withContext Result.failure(Exception(errorMsg))
+                throw Exception(errorMsg)
             }
             
-            val result = json.optJSONObject("result") ?: return@withContext Result.failure(
-                Exception("Не удалось получить информацию о группе")
-            )
+            val result = json.optJSONObject("result") ?: throw Exception("Не удалось получить информацию о группе")
             
             // Пробуем получить username
             val username = result.optString("username", "").trim()
@@ -333,18 +348,18 @@ class TelegramService {
                 }
             }
             
-            Result.success(link)
-        } catch (e: Exception) {
+            link
+        }.recoverCatching { e ->
             val errorMsg = when {
                 e.message?.contains("chat_id", ignoreCase = true) == true -> e.message
                 else -> "Ошибка при получении ссылки на группу: ${e.message ?: e.javaClass.simpleName}"
             }
-            Result.failure(Exception(errorMsg))
+            throw Exception(errorMsg)
         }
     }
 
     suspend fun resolveChatNumericId(token: String, chatId: String): Result<Long> = withContext(Dispatchers.IO) {
-        try {
+        runCatching {
             val trimmed = chatId.trim()
             
             // Если это уже числовой ID - возвращаем как есть
@@ -361,28 +376,27 @@ class TelegramService {
 
             for (username in usernameVariants) {
                 try {
-                    val url = "https://api.telegram.org/bot$token/getChat?chat_id=" + java.net.URLEncoder.encode(username, "UTF-8")
-                    val request = Request.Builder().url(url).get().build()
-                    val response = httpClient.newCall(request).execute()
+                    val encoded = java.net.URLEncoder.encode(username, "UTF-8")
+                    val url = "https://api.telegram.org/bot$token/getChat?chat_id=$encoded"
+                    val responseBody = executeTelegramRequest(
+                        buildRequest = { Request.Builder().url(url).get().build() },
+                        parser = { it }
+                    )
                     
-                    if (response.isSuccessful) {
-                        val bodyStr = response.body?.string() ?: "{}"
-                        val json = JSONObject(bodyStr)
-                        if (json.optBoolean("ok", false)) {
-                            val result = json.optJSONObject("result")
-                            val id = result?.optLong("id")
-                            if (id != null) return@withContext Result.success(id)
-                        }
+                    val json = JSONObject(responseBody.ifEmpty { "{}" })
+                    if (json.optBoolean("ok", false)) {
+                        val result = json.optJSONObject("result")
+                        val resolvedId = result?.optLong("id")
+                        if (resolvedId != null) return@withContext Result.success(resolvedId)
                     }
                 } catch (e: Exception) {
                     // Пробуем следующий вариант
-                    continue
                 }
             }
             
-            Result.failure(Exception("Не удалось получить ID для чата '$trimmed'. Убедитесь, что бот является участником группы или используйте числовой chat_id (например: -1001234567890)"))
-        } catch (e: Exception) {
-            Result.failure(Exception("Ошибка при определении ID чата: ${e.message}"))
+            throw Exception("Не удалось получить ID для чата '$trimmed'. Убедитесь, что бот является участником группы или используйте числовой chat_id (например: -1001234567890)")
+        }.recoverCatching { e ->
+            throw Exception("Ошибка при определении ID чата: ${e.message}")
         }
     }
 } 

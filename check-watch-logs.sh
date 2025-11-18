@@ -6,5 +6,5 @@ echo "📱 Логи приема на часах (нажмите Ctrl+C для �
 echo ""
 
 adb -s "$WATCH_ID" logcat -c
-adb -s "$WATCH_ID" logcat | grep --line-buffered -E "(WearDataReceiver|MainActivity.*data)"
+adb -s "$WATCH_ID" logcat | grep --line-buffered -E "(WearDataListener|MainActivity.*data)"
 
