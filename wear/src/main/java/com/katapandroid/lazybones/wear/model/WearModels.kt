@@ -23,6 +23,7 @@ data class WatchData(
     val reportStatus: String? = null,
     val poolStatus: String? = null,
     val timerText: String? = null,
+    val motivationalSlogan: String? = null,
     val goodItems: List<String> = emptyList(),
     val badItems: List<String> = emptyList(),
     val plans: List<PlanItem> = emptyList(),
@@ -33,6 +34,7 @@ data class WatchData(
             badCount != 0 ||
             !reportStatus.isNullOrBlank() ||
             !timerText.isNullOrBlank() ||
+            !motivationalSlogan.isNullOrBlank() ||
             plans.isNotEmpty() ||
             reports.isNotEmpty()
     }

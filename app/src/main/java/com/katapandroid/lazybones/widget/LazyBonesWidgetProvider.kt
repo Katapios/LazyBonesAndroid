@@ -298,24 +298,12 @@ class LazyBonesWidgetProvider : AppWidgetProvider() {
                 }
 
                 // Мотивационный текст
-                val motivationText = if (poolStatusForTimer != PoolStatus.ACTIVE) {
-                    "Отдыхай, LABотряс! Не пришло твое время"
-                } else {
-                    val currentPlanItems = planItems
-                    if (currentPlanItems.isNotEmpty()) {
-                        val randomItem = currentPlanItems.random().text
-                        val templates = listOf(
-                            "Эй, а ты не забыл сделать «$randomItem»?",
-                            "Как насчет «$randomItem»?",
-                            "А что там с «$randomItem»?",
-                            "Не пора ли заняться «$randomItem»?",
-                            "Помнишь про «$randomItem»?"
-                        )
-                        templates.random()
-                    } else {
-                        "Не пора ли что-нибудь запланировать, LABотряс?"
-                    }
-                }
+                val motivationText = com.katapandroid.lazybones.ui.MotivationalSlogan.getSlogan(
+                    poolStatus = poolStatusForTimer,
+                    plans = planItems,
+                    goodCount = goodCount,
+                    badCount = badCount
+                )
 
                 // Применяем настройки темы и прозрачности
                 applyWidgetTheme(context, views, appWidgetId)

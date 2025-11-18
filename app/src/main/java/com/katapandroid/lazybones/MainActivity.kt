@@ -250,6 +250,7 @@ fun MainScreen(
     val goodCount = viewModel.goodCount.collectAsState().value
     val badCount = viewModel.badCount.collectAsState().value
     val reportStatus = viewModel.reportStatus.collectAsState().value
+    val motivationalSlogan = viewModel.motivationalSlogan.collectAsState().value
 
     Box(
         modifier = Modifier
@@ -261,6 +262,16 @@ fun MainScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+            // Мотивационный лозунг
+            if (motivationalSlogan.isNotEmpty()) {
+                Text(
+                    text = motivationalSlogan,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+            }
             Text("Статус отчёта: ${statusText(reportStatus)}", style = MaterialTheme.typography.titleMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
                 CounterBox(count = goodCount, label = "Good", color = Color(0xFF4CAF50))

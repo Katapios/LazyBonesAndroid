@@ -66,6 +66,7 @@ class WearDataRepository private constructor(private val appContext: Context) {
                 .putString(KEY_REPORT_STATUS, watchData.reportStatus)
                 .putString(KEY_POOL_STATUS, watchData.poolStatus)
                 .putString(KEY_TIMER_TEXT, watchData.timerText)
+                .putString(KEY_MOTIVATIONAL_SLOGAN, watchData.motivationalSlogan)
                 .putStringSet(KEY_GOOD_ITEMS, watchData.goodItems.toSet())
                 .putStringSet(KEY_BAD_ITEMS, watchData.badItems.toSet())
                 .putString(KEY_PLANS_JSON, plansArray.toString())
@@ -117,6 +118,7 @@ class WearDataRepository private constructor(private val appContext: Context) {
             reportStatus = prefs.getString(KEY_REPORT_STATUS, null),
             poolStatus = prefs.getString(KEY_POOL_STATUS, null),
             timerText = prefs.getString(KEY_TIMER_TEXT, null),
+            motivationalSlogan = prefs.getString(KEY_MOTIVATIONAL_SLOGAN, null),
             goodItems = prefs.getStringSet(KEY_GOOD_ITEMS, emptySet())?.toList() ?: emptyList(),
             badItems = prefs.getStringSet(KEY_BAD_ITEMS, emptySet())?.toList() ?: emptyList(),
             plans = runCatching { parsePlans(JSONArray(plansJson)) }.getOrElse { emptyList() },
@@ -135,6 +137,7 @@ class WearDataRepository private constructor(private val appContext: Context) {
         private const val KEY_REPORT_STATUS = "reportStatus"
         private const val KEY_POOL_STATUS = "poolStatus"
         private const val KEY_TIMER_TEXT = "timerText"
+        private const val KEY_MOTIVATIONAL_SLOGAN = "motivationalSlogan"
         private const val KEY_GOOD_ITEMS = "goodItems"
         private const val KEY_BAD_ITEMS = "badItems"
         private const val KEY_PLANS_JSON = "plansJson"
@@ -222,6 +225,7 @@ class WearDataRepository private constructor(private val appContext: Context) {
                 reportStatus = optStringOrNull("reportStatus"),
                 poolStatus = optStringOrNull("poolStatus"),
                 timerText = optStringOrNull("timerText"),
+                motivationalSlogan = optStringOrNull("motivationalSlogan"),
                 goodItems = (optJSONArray("goodItems") ?: JSONArray()).toStringList(),
                 badItems = (optJSONArray("badItems") ?: JSONArray()).toStringList(),
                 plans = parsePlans(plansArray),

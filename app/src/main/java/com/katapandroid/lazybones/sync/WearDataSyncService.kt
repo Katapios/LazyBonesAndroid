@@ -59,7 +59,8 @@ class WearDataSyncService(private val context: Context) {
         badItems: List<String>,
         plans: List<com.katapandroid.lazybones.data.PlanItem> = emptyList(),
         reports: List<com.katapandroid.lazybones.data.Post> = emptyList(),
-        planPosts: List<com.katapandroid.lazybones.data.Post> = emptyList()
+        planPosts: List<com.katapandroid.lazybones.data.Post> = emptyList(),
+        motivationalSlogan: String? = null
     ) {
         val payloadJson = buildPayloadJson(
             goodCount,
@@ -71,7 +72,8 @@ class WearDataSyncService(private val context: Context) {
             badItems,
             plans,
             reports,
-            planPosts
+            planPosts,
+            motivationalSlogan
         )
         val payloadString = payloadJson.toString()
         val payloadHash = payloadString.hashCode()
@@ -125,7 +127,8 @@ class WearDataSyncService(private val context: Context) {
         badItems: List<String>,
         plans: List<com.katapandroid.lazybones.data.PlanItem>,
         reports: List<com.katapandroid.lazybones.data.Post>,
-        planPosts: List<com.katapandroid.lazybones.data.Post>
+        planPosts: List<com.katapandroid.lazybones.data.Post>,
+        motivationalSlogan: String? = null
     ): JSONObject {
         val data = JSONObject().apply {
             put("goodCount", goodCount)
@@ -133,6 +136,7 @@ class WearDataSyncService(private val context: Context) {
             reportStatus?.let { put("reportStatus", it) }
             poolStatus?.let { put("poolStatus", it) }
             timerText?.let { put("timerText", it) }
+            motivationalSlogan?.let { put("motivationalSlogan", it) }
             put("goodItems", org.json.JSONArray(goodItems))
             put("badItems", org.json.JSONArray(badItems))
             put("timestamp", System.currentTimeMillis())

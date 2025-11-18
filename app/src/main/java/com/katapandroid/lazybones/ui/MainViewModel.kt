@@ -46,15 +46,19 @@ class MainViewModel(
     
     private val _canCreatePlan = MutableStateFlow(false)
     val canCreatePlan: StateFlow<Boolean> = _canCreatePlan.asStateFlow()
+    
+    private val _motivationalSlogan = MutableStateFlow("")
+    val motivationalSlogan: StateFlow<String> = _motivationalSlogan.asStateFlow()
 
     init {
         // Отслеживаем изменения отчетов и настроек
         combine(
             postRepository.getAllPosts(),
             settingsRepository.unlockReportCreation,
-            settingsRepository.unlockPlanCreation
-        ) { posts, unlockReport, unlockPlan ->
-            updateReportStatus(posts, unlockReport, unlockPlan)
+            settingsRepository.unlockPlanCreation,
+            planItemRepository.getAll()
+        ) { posts, unlockReport, unlockPlan, plans ->
+            updateReportStatus(posts, unlockReport, unlockPlan, plans)
         }.launchIn(viewModelScope)
         
         // Обновляем статус пула и таймер
@@ -62,6 +66,13 @@ class MainViewModel(
             // Сначала инициализируем статус и таймер
             updatePoolStatus()
             updateTimer()
+            // Инициализируем мотивационный лозунг
+            val initialPlans = try {
+                planItemRepository.getAllSync()
+            } catch (e: Exception) {
+                emptyList()
+            }
+            updateMotivationalSlogan(initialPlans)
             
             // Отправляем тестовые данные сразу при запуске
             delay(1000)
@@ -88,7 +99,7 @@ class MainViewModel(
         }
     }
     
-    private fun updateReportStatus(posts: List<com.katapandroid.lazybones.data.Post>, unlockReport: Boolean, unlockPlan: Boolean) {
+    private fun updateReportStatus(posts: List<com.katapandroid.lazybones.data.Post>, unlockReport: Boolean, unlockPlan: Boolean, plans: List<com.katapandroid.lazybones.data.PlanItem>) {
         val (poolStart, poolEnd) = timePoolManager.getCurrentPoolRange()
 
         val analysis = ReportStatusAnalyzer.analyze(posts, poolStart, poolEnd)
@@ -110,8 +121,8 @@ class MainViewModel(
             updateTimer()
             
             // Получаем планы и отчёты
-            val plans = try {
-                planItemRepository?.getAllSync() ?: emptyList()
+            val plansForSync = try {
+                planItemRepository.getAllSync()
             } catch (e: Exception) {
                 android.util.Log.e("MainViewModel", "Error getting plans", e)
                 emptyList()
@@ -124,7 +135,14 @@ class MainViewModel(
                 emptyList()
             }
             
-            android.util.Log.d("MainViewModel", "📤 Syncing plans=${plans.size}, reports=${allReports.size}")
+            android.util.Log.d("MainViewModel", "📤 Syncing plans=${plansForSync.size}, reports=${allReports.size}")
+            
+            val planPostsForSync = try {
+                postRepository.getAllPostsSync().filter { !it.isDraft && it.checklist.isNotEmpty() }
+            } catch (e: Exception) {
+                android.util.Log.e("MainViewModel", "Error getting plan posts", e)
+                emptyList()
+            }
             
             wearSyncService.syncAllData(
                 newGoodCount,
@@ -134,8 +152,10 @@ class MainViewModel(
                 _timerText.value,
                 goodItemsList,
                 badItemsList,
-                plans,
-                allReports
+                plansForSync,
+                allReports,
+                planPostsForSync,
+                _motivationalSlogan.value
             )
         }
 
@@ -154,15 +174,37 @@ class MainViewModel(
 
         _canCreateReport.value = (isInPoolTime && (!reportPublished || unlockReport))
         _canCreatePlan.value = (isInPoolTime && (!planPublished || unlockPlan))
+        
+        // Обновляем мотивационный лозунг
+        updateMotivationalSlogan(plans)
     }
     
     private fun updatePoolStatus() {
         val newStatus = timePoolManager.getPoolStatus()
         if (_poolStatus.value != newStatus) {
             _poolStatus.value = newStatus
+            // Обновляем мотивационный лозунг при изменении статуса пула
+            viewModelScope.launch {
+                val plansForSlogan = try {
+                    planItemRepository.getAllSync()
+                } catch (e: Exception) {
+                    emptyList()
+                }
+                updateMotivationalSlogan(plansForSlogan)
+            }
             // Синхронизируем при изменении статуса пула
             syncDataToWear()
         }
+    }
+    
+    private fun updateMotivationalSlogan(plans: List<com.katapandroid.lazybones.data.PlanItem>) {
+        val slogan = MotivationalSlogan.getSlogan(
+            poolStatus = _poolStatus.value,
+            plans = plans,
+            goodCount = _goodCount.value,
+            badCount = _badCount.value
+        )
+        _motivationalSlogan.value = slogan
     }
     
     private fun updateTimer() {
@@ -287,7 +329,8 @@ class MainViewModel(
                     badItemsList,
                     plans,
                     allReports,
-                    allPostsForPlans // Передаем Post для получения дат
+                    allPostsForPlans, // Передаем Post для получения дат
+                    _motivationalSlogan.value
                 )
             } catch (e: Exception) {
                 android.util.Log.e("MainViewModel", "Error syncing to wear", e)

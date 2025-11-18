@@ -114,7 +114,10 @@ class MainActivity : ComponentActivity() {
 
     private fun updateWidget(data: WatchData) {
         try {
-            val manager = AppWidgetManager.getInstance(this)
+            val manager = AppWidgetManager.getInstance(this) ?: run {
+                Log.d("MainActivity", "AppWidgetManager is null, widget may not be installed")
+                return
+            }
             val widgetIds = manager.getAppWidgetIds(
                 ComponentName(this, WearWidgetProvider::class.java)
             )
@@ -141,8 +144,16 @@ private fun MainContent(
     val dataState by repository.data.collectAsState()
     val connectionInfo by connectionInfoState.collectAsState("")
 
-    LaunchedEffect(dataState) {
+    // Обновляем виджет только при значимых изменениях, с дебаунсингом
+    LaunchedEffect(
+        dataState.goodCount,
+        dataState.badCount,
+        dataState.reportStatus,
+        dataState.poolStatus,
+        dataState.timerText
+    ) {
         if (dataState.hasMeaningfulContent()) {
+            kotlinx.coroutines.delay(500) // Дебаунсинг 500мс
             onUpdateWidget(dataState)
         }
     }
@@ -171,6 +182,7 @@ private fun MainContent(
                         reportStatus = dataState.reportStatus,
                         poolStatus = dataState.poolStatus,
                         timerText = dataState.timerText,
+                        motivationalSlogan = dataState.motivationalSlogan,
                         goodItems = dataState.goodItems,
                         badItems = dataState.badItems,
                         connectionInfo = connectionInfo
@@ -218,6 +230,7 @@ fun MainScreen(
     reportStatus: String? = null,
     poolStatus: String? = null,
     timerText: String? = null,
+    motivationalSlogan: String? = null,
     goodItems: List<String> = emptyList(),
     badItems: List<String> = emptyList(),
     connectionInfo: String = ""
@@ -230,6 +243,16 @@ fun MainScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // Мотивационный лозунг
+        if (!motivationalSlogan.isNullOrBlank()) {
+            Text(
+                text = motivationalSlogan,
+                fontSize = 14.sp,
+                color = WearMaterialTheme.colors.primary,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+            )
+        }
         fun translateStatus(status: String?): String {
             return when (status?.uppercase()) {
                 "PUBLISHED" -> "Опубликован"
