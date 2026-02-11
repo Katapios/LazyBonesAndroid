@@ -193,7 +193,10 @@ private fun PlanTab(
             }
         }
         Spacer(Modifier.height(16.dp))
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             items(planItems, key = { it.id }) { item ->
                 AnimatedVisibility(visible = true, enter = fadeIn(), exit = fadeOut()) {
                     if (editingId == item.id) {
@@ -296,7 +299,6 @@ private fun PlanTab(
                 }
             }
         }
-        Spacer(Modifier.weight(1f))
         if (planItems.isNotEmpty()) {
             val canCreatePlan = mainViewModel.canCreatePlan.collectAsState().value
             Button(
