@@ -56,9 +56,9 @@ fun PlanScreen(
     viewModel: PlanViewModel = koinViewModel(),
     initialTab: Int = 0
 ) {
-    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    @Suppress("DEPRECATION")
     val postRepository = get<PostRepository>()
     val mainViewModel = koinViewModel<MainViewModel>()
     var selectedTab by remember { mutableStateOf(initialTab) } // 0 = План, 1 = Отчет, 2 = Теги

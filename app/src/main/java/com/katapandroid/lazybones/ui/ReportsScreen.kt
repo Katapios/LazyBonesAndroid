@@ -11,10 +11,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -48,6 +50,9 @@ data class ReportUi(
 fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
     val posts by viewModel.posts.collectAsState()
     val customPosts by viewModel.customPosts.collectAsState()
+
+    var localExpanded by remember { mutableStateOf(true) }
+    var customExpanded by remember { mutableStateOf(true) }
 
     // Отдельные состояния для локальных и кастомных отчётов
     var localSelectionMode by remember { mutableStateOf(false) }
@@ -83,6 +88,14 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
             item {
                 SectionHeader(
                     title = "Отчеты за день",
+                    expanded = localExpanded,
+                    onToggleExpanded = {
+                        localExpanded = !localExpanded
+                        if (!localExpanded) {
+                            localSelectionMode = false
+                            selectedLocalReports = emptySet()
+                        }
+                    },
                     selectionMode = localSelectionMode,
                     selectedCount = selectedLocalReports.size,
                     totalCount = posts.size,
@@ -109,49 +122,50 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                     }
                 )
             }
-            if (posts.isEmpty()) {
-                item {
-                    Text(
-                        text = "Еще нет созданных отчетов за день",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 16.dp)
-                    )
-                }
-            } else {
-                items(posts.indices.toList()) { idx ->
-                    val post = posts[idx]
-                    val report = ReportUi(
-                        date = post.date,
-                        good = post.goodItems,
-                        bad = post.badItems,
-                        isCustom = false,
-                        isSaved = true
-                    )
-                    ReportCard(
-                        report = report,
-                        dateFormat = dateFormat,
-                        selected = selectedLocalReports.contains(idx),
-                        onSelect = {
-                            // Всегда включаем режим выделения при первом нажатии на отчёт
-                            if (!localSelectionMode) {
-                                localSelectionMode = true
-                                selectedLocalReports = setOf(idx)
-                            } else {
-                                // В режиме выделения переключаем состояние элемента
-                                selectedLocalReports = if (selectedLocalReports.contains(idx))
-                                    selectedLocalReports - idx else selectedLocalReports + idx
+            if (localExpanded) {
+                if (posts.isEmpty()) {
+                    item {
+                        Text(
+                            text = "Еще нет созданных отчетов за день",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 16.dp)
+                        )
+                    }
+                } else {
+                    items(posts.indices.toList()) { idx ->
+                        val post = posts[idx]
+                        val report = ReportUi(
+                            date = post.date,
+                            good = post.goodItems,
+                            bad = post.badItems,
+                            isCustom = false,
+                            isSaved = true
+                        )
+                        ReportCard(
+                            report = report,
+                            dateFormat = dateFormat,
+                            selected = selectedLocalReports.contains(idx),
+                            onSelect = {
+                                // Всегда включаем режим выделения при первом нажатии на отчёт
+                                if (!localSelectionMode) {
+                                    localSelectionMode = true
+                                    selectedLocalReports = setOf(idx)
+                                } else {
+                                    // В режиме выделения переключаем состояние элемента
+                                    selectedLocalReports = if (selectedLocalReports.contains(idx))
+                                        selectedLocalReports - idx else selectedLocalReports + idx
 
-                                // Если сняли выделение со всех элементов, выключаем режим выделения
-                                if (selectedLocalReports.isEmpty()) {
-                                    localSelectionMode = false
+                                    // Если сняли выделение со всех элементов, выключаем режим выделения
+                                    if (selectedLocalReports.isEmpty()) {
+                                        localSelectionMode = false
+                                    }
                                 }
-                            }
-                        },
-                        onSend = { showTelegramSettingsDialog = post }, // <--- теперь для локальных
-                        onDelete = {},
-                        onSave = {}
-                    )
+                            },
+                            onSend = { showTelegramSettingsDialog = post }, // <--- теперь для локальных
+                            onDelete = {}
+                        )
+                    }
                 }
             }
             // Планы на день
@@ -159,6 +173,14 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                 Spacer(Modifier.height(16.dp))
                 SectionHeader(
                     title = "Планы на день",
+                    expanded = customExpanded,
+                    onToggleExpanded = {
+                        customExpanded = !customExpanded
+                        if (!customExpanded) {
+                            customSelectionMode = false
+                            selectedCustomReports = emptySet()
+                        }
+                    },
                     selectionMode = customSelectionMode,
                     selectedCount = selectedCustomReports.size,
                     totalCount = customPosts.size,
@@ -184,49 +206,50 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                     }
                 )
             }
-            if (customPosts.isEmpty()) {
-                item {
-                    Text(
-                        text = "Еще нет созданных планов на день",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 16.dp)
-                    )
-                }
-            } else {
-                items(customPosts.indices.toList()) { idx ->
-                    val post = customPosts[idx]
-                    val report = ReportUi(
-                        date = post.date,
-                        good = post.goodItems, // Для кастомных отчетов это будет пусто, пока не оценены
-                        bad = post.badItems,   // Для кастомных отчетов это будет пусто, пока не оценены
-                        isCustom = true,
-                        isSaved = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty() // Оценен ли отчет
-                    )
-                    ReportCard(
-                        report = report,
-                        dateFormat = dateFormat,
-                        selected = selectedCustomReports.contains(idx),
-                        onSelect = {
-                            // Всегда включаем режим выделения при первом нажатии на отчёт
-                            if (!customSelectionMode) {
-                                customSelectionMode = true
-                                selectedCustomReports = setOf(idx)
-                            } else {
-                                // В режиме выделения переключаем состояние элемента
-                                selectedCustomReports = if (selectedCustomReports.contains(idx))
-                                    selectedCustomReports - idx else selectedCustomReports + idx
+            if (customExpanded) {
+                if (customPosts.isEmpty()) {
+                    item {
+                        Text(
+                            text = "Еще нет созданных планов на день",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 16.dp)
+                        )
+                    }
+                } else {
+                    items(customPosts.indices.toList()) { idx ->
+                        val post = customPosts[idx]
+                        val report = ReportUi(
+                            date = post.date,
+                            good = post.goodItems, // Для кастомных отчетов это будет пусто, пока не оценены
+                            bad = post.badItems,   // Для кастомных отчетов это будет пусто, пока не оценены
+                            isCustom = true,
+                            isSaved = post.goodItems.isNotEmpty() || post.badItems.isNotEmpty() // Оценен ли отчет
+                        )
+                        ReportCard(
+                            report = report,
+                            dateFormat = dateFormat,
+                            selected = selectedCustomReports.contains(idx),
+                            onSelect = {
+                                // Всегда включаем режим выделения при первом нажатии на отчёт
+                                if (!customSelectionMode) {
+                                    customSelectionMode = true
+                                    selectedCustomReports = setOf(idx)
+                                } else {
+                                    // В режиме выделения переключаем состояние элемента
+                                    selectedCustomReports = if (selectedCustomReports.contains(idx))
+                                        selectedCustomReports - idx else selectedCustomReports + idx
 
-                                // Если сняли выделение со всех элементов, выключаем режим выделения
-                                if (selectedCustomReports.isEmpty()) {
-                                    customSelectionMode = false
+                                    // Если сняли выделение со всех элементов, выключаем режим выделения
+                                    if (selectedCustomReports.isEmpty()) {
+                                        customSelectionMode = false
+                                    }
                                 }
-                            }
-                        },
-                        onSend = { showTelegramSettingsDialog = post },
-                        onDelete = { showEvaluationScreen = post },
-                        onSave = {}
-                    )
+                            },
+                            onSend = { showTelegramSettingsDialog = post },
+                            onDelete = { showEvaluationScreen = post }
+                        )
+                    }
                 }
             }
             // --- Секция ИЗ TELEGRAM ---
@@ -276,7 +299,7 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                         }
                     }, modifier = Modifier.weight(1f)) {
                         Icon(
-                            Icons.Default.Send,
+                            Icons.AutoMirrored.Filled.Send,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -440,6 +463,8 @@ private fun openTelegramLink(activity: ComponentActivity, link: String) {
 @Composable
 private fun SectionHeader(
     title: String,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
     selectionMode: Boolean,
     selectedCount: Int = 0,
     totalCount: Int = 0,
@@ -459,6 +484,13 @@ private fun SectionHeader(
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f)
         )
+        IconButton(onClick = onToggleExpanded) {
+            Icon(
+                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = if (expanded) "Свернуть" else "Развернуть",
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
         if (selectionMode) {
             if (selectedCount > 0) {
                 TextButton(onClick = onDelete) {
@@ -481,8 +513,7 @@ private fun ReportCard(
     selected: Boolean,
     onSelect: () -> Unit,
     onSend: () -> Unit,
-    onDelete: () -> Unit,
-    onSave: () -> Unit
+    onDelete: () -> Unit
 ) {
     // Получаем оригинальный пост для доступа к checklist
     val posts by (koinViewModel<ReportsViewModel>().posts.collectAsState())
@@ -520,7 +551,7 @@ private fun ReportCard(
                 )
                 IconButton(onClick = onSend) {
                     Icon(
-                        Icons.Default.Send,
+                        Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Отправить в Telegram",
                         tint = MaterialTheme.colorScheme.primary
                     )
